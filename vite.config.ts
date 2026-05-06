@@ -12,6 +12,9 @@ const config = defineConfig({
     viteReact(),
   ],
   server: {
+    allowedHosts: [
+      'devserver-main--ai-agent-automation-console.netlify.app'
+    ],
     proxy: {
       '/api': {
         target: 'http://localhost:8000',

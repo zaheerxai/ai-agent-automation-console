@@ -10,6 +10,7 @@ from django.views.decorators.http import require_POST
 @csrf_exempt
 @require_POST
 def trigger_agent(request):
+    
     try:
         body = json.loads(request.body.decode("utf-8"))
     except json.JSONDecodeError:
@@ -31,15 +32,16 @@ def trigger_agent(request):
         n8n_response.raise_for_status()
     except requests.RequestException:
         return JsonResponse({"message": "System busy"}, status=503)
+    except Exception:
+        return JsonResponse({"message": "System busy"}, status=503)
+        
+        text = n8n_response.text.strip()
+        if not text:
+            response_data = {"message": "Webhook received"}
+        else:
+            try:
+                response_data = n8n_response.json()
+            except ValueError:
+                response_data = {"message": text}
 
-    try:
-        response_data = n8n_response.json()
-    except ValueError:
-        response_data = {"message": n8n_response.text}
-
-    return JsonResponse(
-        {
-            "status": "ok",
-            "response": response_data,
-        }
-    )
+        return JsonResponse({"status": "ok", "response": response_data})

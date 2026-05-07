@@ -89,7 +89,13 @@ function App() {
         body: JSON.stringify({ message }),
       })
 
-      const data = (await response.json()) as AgentResponse
+      const text = await response.text()
+      let data: AgentResponse = {}
+      try {
+        data = JSON.parse(text) as AgentResponse
+      } catch {
+        data = { message: text.trim() || 'System busy' }
+      }
 
       if (!response.ok) {
         throw new Error(data.message || data.error || 'System busy')
@@ -274,7 +280,7 @@ function App() {
                 {isSubmitting && (
                   <div className="flex items-center gap-3 text-sm text-slate-400">
                     <Loader2 className="h-4 w-4 animate-spin text-emerald-200" />
-                    Waiting for automation engine response...
+                    <span className="animate-pulse">Agent is writing a response...</span>
                   </div>
                 )}
               </div>

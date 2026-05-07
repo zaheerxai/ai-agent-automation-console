@@ -25,7 +25,7 @@ def trigger_agent(request):
     try:
         n8n_response = requests.post(
             settings.N8N_WEBHOOK_URL,
-            json={"message": user_message},
+            json={"User message": user_message},
             timeout=settings.N8N_TIMEOUT_SECONDS,
         )
         print(f"n8n status: {n8n_response.status_code}")

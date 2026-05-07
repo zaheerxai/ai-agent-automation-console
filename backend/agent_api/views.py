@@ -10,7 +10,6 @@ from django.views.decorators.http import require_POST
 @csrf_exempt
 @require_POST
 def trigger_agent(request):
-    
     try:
         body = json.loads(request.body.decode("utf-8"))
     except json.JSONDecodeError:

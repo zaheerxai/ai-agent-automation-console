@@ -29,8 +29,10 @@ def trigger_agent(request):
             json={"message": user_message},
             timeout=settings.N8N_TIMEOUT_SECONDS,
         )
-        n8n_response.raise_for_status()
-    except requests.RequestException:
+        print(f"n8n status: {n8n_response.status_code}")
+        print(f"n8n body: {n8n_response.text!r}")
+    except requests.RequestException as e:
+        print(f"n8n request failed: {e}")
         return JsonResponse({"message": "System busy"}, status=503)
 
     text = n8n_response.text.strip()

@@ -79,9 +79,13 @@ function App() {
       content: message,
     }
     setTranscript((items) => [...items, userItem])
+  
+    
+    const WEBHOOK_URL = 'https://mojo-ai.app.n8n.cloud/webhook-test/ai-request'; 
 
     try {
-      const response = await fetch('/api/trigger-agent/', {
+      // 2. Change the fetch path to the absolute URL
+      const response = await fetch(WEBHOOK_URL, { 
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -10,20 +10,25 @@ SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "local-development-only-key")
 DEBUG = os.getenv("DJANGO_DEBUG", "true").lower() == "true"
 
 ALLOWED_HOSTS = [
-    host.strip()
-    for host in os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
-    if host.strip()
+    '.vercel.app', 'now.sh', 'localhost', '127.0.0.1'
 ]
 
 INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.staticfiles",
     "agent_api",
+    "corsheaders",
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     "django.middleware.security.SecurityMiddleware",
     "django.middleware.common.CommonMiddleware",
+]
+
+CORS_ALLOWED_ORIGINS = [
+    "https:/ai-agent-automation-console.vercel.app",
+    "http://localhost:5173", # Vite default port
 ]
 
 ROOT_URLCONF = "agent_backend.urls"

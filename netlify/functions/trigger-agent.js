@@ -25,5 +25,3 @@ export default async (req) => {
     return Response.json({ message: 'System busy' }, { status: 503 })
   }
 }
-
-export const config = { path: '/api/trigger-agent' }

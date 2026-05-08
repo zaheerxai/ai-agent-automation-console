@@ -3,7 +3,7 @@
   "version": 2,
   "builds": [
     {
-      "src": "backend/core/wsgi.py",
+      "src": "backend/agent_backend/wsgi.py",
       "use": "@vercel/python",
       "config": { "maxLambdaSize": "15mb", "runtime": "python3.12" }
     },
@@ -15,7 +15,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "backend/core/wsgi.py"
+      "destination": "backend/agent_backend/wsgi.py"
     },
     {
       "source": "/(.*)",

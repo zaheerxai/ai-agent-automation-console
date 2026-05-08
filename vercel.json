@@ -3,6 +3,10 @@
     {
       "source": "/api/:path*",
       "destination": "https://your-webhook-url.com/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }

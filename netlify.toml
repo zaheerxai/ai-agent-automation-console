@@ -1,6 +1,15 @@
 [build]
   command = "vite build"
   publish = "dist"
+
+[functions]
+  directory = "netlify/functions"
+
+[[redirects]]
+  from = "/api/trigger-agent"
+  to = "/.netlify/functions/trigger-agent"
+  status = 200
+
 [dev]
   command = "npm run dev"
   targetPort = 3000

@@ -16,7 +16,7 @@
     {
       "source": "/((?!api/).*)",
       "destination": "/frontend/index.html"
-    }
+    },
     {
       "source": "/api/(.*)",
       "destination": "backend/agent_backend/wsgi.py"

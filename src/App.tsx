@@ -90,7 +90,7 @@ function App() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ message }),
+        body: JSON.stringify({ "User message": message }),
       })
 
       const text = await response.text()

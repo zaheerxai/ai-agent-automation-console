@@ -27,9 +27,9 @@ type TranscriptItem = {
 }
 
 const quickPrompts = [
-  'Summarize today\'s queued automation runs.',
-  'Trigger the lead enrichment workflow for pending CRM records.',
-  'Check failed invoice sync jobs and suggest the next action.',
+  'Help me draft a follow-up email to my last client.',
+  'Summarize my agenda and tasks for today.',
+  'Analyze the latest CRM data and give me insights.',
 ]
 
 function formatResponse(payload: AgentResponse) {
@@ -152,7 +152,7 @@ function App() {
               </div>
               <div>
                 <p className="font-mono text-xs uppercase tracking-[0.28em] text-emerald-200/75">
-                  n8n bridge
+                  Mojo AI
                 </p>
                 <h1 className="text-2xl font-semibold text-white">
                   Agent Automation Console
@@ -168,7 +168,7 @@ function App() {
                 <div className="flex items-center justify-between rounded-[8px] border border-white/10 bg-slate-950/55 px-4 py-3">
                   <span className="flex items-center gap-2 text-sm text-slate-200">
                     <RadioTower className="h-4 w-4 text-cyan-200" />
-                    Backend relay
+                    N8N Workflow
                   </span>
                   <span className="rounded-full border border-emerald-300/25 bg-emerald-300/10 px-2.5 py-1 font-mono text-xs text-emerald-200">
                     {latestStatus}
@@ -178,23 +178,28 @@ function App() {
 
               <div className="grid gap-3">
                 <div className="flex items-start gap-3 rounded-[8px] border border-white/10 bg-white/[0.035] p-4">
-                  <ShieldCheck className="mt-0.5 h-4 w-4 text-emerald-200" />
+                  <TerminalSquare className="mt-0.5 h-4 w-4 text-emerald-200" />
                   <p className="text-sm leading-6 text-slate-300">
-                    Requests stay decoupled from workflow logic through a
-                    Django proxy and environment-managed webhook target.
+                    Your request is securely sent from this chat interface directly to the automation engine (n8n) via a digital handshake called a webhook.
                   </p>
                 </div>
                 <div className="flex items-start gap-3 rounded-[8px] border border-white/10 bg-white/[0.035] p-4">
-                  <TerminalSquare className="mt-0.5 h-4 w-4 text-cyan-200" />
+                  <ShieldCheck className="mt-0.5 h-4 w-4 text-cyan-200" />
                   <p className="text-sm leading-6 text-slate-300">
-                    The UI posts a compact JSON payload to
-                    <span className="font-mono text-slate-100">
+                   The engine passes your specific instructions to the AI Intelligence core, where the data is analyzed and a tailored response is generated.
+                    {/* <span className="font-mono text-slate-100">
                       {' '}
-                      /api/trigger-agent/
+                      
                     </span>
-                    .
-                  </p>
+                    . */}
+                  </p>                    
                 </div>
+                  <div className="flex items-start gap-3 rounded-[8px] border border-white/10 bg-white/[0.035] p-4">
+                  <TerminalSquare className="mt-0.5 h-4 w-4 text-emerald-200" />
+                  <p className="text-sm leading-6 text-slate-300">
+                    The finished answer is instantly routed back through the connection and displayed right here in your conversation window. 
+                  </p>
+                 </div>
               </div>
             </div>
           </div>
@@ -230,7 +235,7 @@ function App() {
             </div>
             <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.035] px-3 py-2 text-sm text-slate-300">
               <CheckCircle2 className="h-4 w-4 text-emerald-200" />
-              JSON relay enabled
+              Encrypted Chat
             </div>
           </header>
 
@@ -245,8 +250,7 @@ function App() {
                     Awaiting first instruction
                   </h3>
                   <p className="mt-3 text-sm leading-6 text-slate-400">
-                    Send an operational request and the Django backend will
-                    forward it to the configured n8n webhook.
+                    Ask me to analyze data, schedule a task, or answer questions about your current projects.
                   </p>
                 </div>
               </div>

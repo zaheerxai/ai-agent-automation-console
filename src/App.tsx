@@ -139,151 +139,205 @@ function App() {
     }
   }
 
-return (
-  <main className="min-h-screen overflow-hidden px-4 py-4 sm:px-6 lg:px-8 bg-[#020617]">
-    {/* YOUR FAVORITE GRID BACKGROUND - PRESERVED */}
-    <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(rgba(238,242,248,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(238,242,248,0.03)_1px,transparent_1px)] bg-[size:44px_44px] [mask-image:linear-gradient(to_bottom,black,transparent_90%)]" />
+  return (
+    <main className="min-h-screen overflow-hidden px-5 py-6 sm:px-8 lg:px-10">
+      <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(rgba(238,242,248,0.045)_1px,transparent_1px),linear-gradient(90deg,rgba(238,242,248,0.045)_1px,transparent_1px)] bg-[size:44px_44px] [mask-image:linear-gradient(to_bottom,black,transparent_82%)]" />
 
-    <section className="relative mx-auto flex h-[calc(100vh-2rem)] max-w-[1600px] gap-4">
-      
-      {/* 1. LEFT SIDEBAR: THE CONTROL PANEL */}
-      <aside className="hidden w-80 flex-col justify-between rounded-2xl border border-white/10 bg-white/[0.02] p-6 backdrop-blur-xl lg:flex">
-        <div>
-          {/* LOGO & HEADING - PRESERVED & POLISHED */}
-          <div className="mb-12 flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-emerald-400/30 bg-emerald-400/10 text-emerald-400 shadow-[0_0_15px_rgba(52,211,153,0.15)]">
-              <Workflow className="h-5 w-5" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold tracking-tight text-white">MOJO <span className="text-emerald-400">AI</span></h1>
-              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-emerald-400/60">Agency Engine v1.0</p>
-            </div>
-          </div>
-
-          {/* STATUS CARDS: THE "TRANSPARENT/OPAQUE" FEEL */}
-          <div className="space-y-6">
-            <div>
-              <p className="mb-3 font-mono text-[10px] uppercase tracking-widest text-slate-500">System Vitality</p>
-              <div className="rounded-xl border border-white/5 bg-slate-950/40 p-4 backdrop-blur-sm">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs text-slate-400">Relay Status</span>
-                  <span className="flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-400 border border-emerald-500/20">
-                    <div className="h-1 w-1 animate-pulse rounded-full bg-emerald-400" />
-                    {latestStatus}
-                  </span>
-                </div>
-                <div className="h-1 w-full rounded-full bg-white/5 overflow-hidden">
-                  <div className="h-full w-full bg-emerald-400/40 animate-pulse" />
-                </div>
+      <section className="relative mx-auto grid min-h-[calc(100vh-3rem)] max-w-7xl gap-6 lg:grid-cols-[0.9fr_1.5fr]">
+        <aside className="flex flex-col justify-between rounded-[8px] border border-white/10 bg-white/[0.035] p-6 shadow-2xl shadow-black/30 backdrop-blur">
+          <div>
+            <div className="mb-10 flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-[8px] border border-emerald-300/30 bg-emerald-300/10 text-emerald-200">
+                <Workflow className="h-5 w-5" aria-hidden="true" />
+              </div>
+              <div>
+                <p className="font-mono text-xs uppercase tracking-[0.28em] text-emerald-200/75">
+                  n8n bridge
+                </p>
+                <h1 className="text-2xl font-semibold text-white">
+                  Agent Automation Console
+                </h1>
               </div>
             </div>
 
-            {/* PRESET PROMPTS: OPAQUE BUTTONS ON TRANSPARENT BASE */}
+            <div className="space-y-5">
+              <div>
+                <p className="mb-2 font-mono text-xs uppercase tracking-[0.24em] text-slate-500">
+                  Status
+                </p>
+                <div className="flex items-center justify-between rounded-[8px] border border-white/10 bg-slate-950/55 px-4 py-3">
+                  <span className="flex items-center gap-2 text-sm text-slate-200">
+                    <RadioTower className="h-4 w-4 text-cyan-200" />
+                    Backend relay
+                  </span>
+                  <span className="rounded-full border border-emerald-300/25 bg-emerald-300/10 px-2.5 py-1 font-mono text-xs text-emerald-200">
+                    {latestStatus}
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid gap-3">
+                <div className="flex items-start gap-3 rounded-[8px] border border-white/10 bg-white/[0.035] p-4">
+                  <ShieldCheck className="mt-0.5 h-4 w-4 text-emerald-200" />
+                  <p className="text-sm leading-6 text-slate-300">
+                    Requests stay decoupled from workflow logic through a
+                    Django proxy and environment-managed webhook target.
+                  </p>
+                </div>
+                <div className="flex items-start gap-3 rounded-[8px] border border-white/10 bg-white/[0.035] p-4">
+                  <TerminalSquare className="mt-0.5 h-4 w-4 text-cyan-200" />
+                  <p className="text-sm leading-6 text-slate-300">
+                    The UI posts a compact JSON payload to
+                    <span className="font-mono text-slate-100">
+                      {' '}
+                      /api/trigger-agent/
+                    </span>
+                    .
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-10 border-t border-white/10 pt-5">
+            <p className="mb-3 font-mono text-xs uppercase tracking-[0.24em] text-slate-500">
+              Prompt presets
+            </p>
             <div className="space-y-2">
-              <p className="mb-3 font-mono text-[10px] uppercase tracking-widest text-slate-500">Quick Actions</p>
               {quickPrompts.map((prompt) => (
                 <button
+                  className="w-full rounded-[8px] border border-white/10 bg-slate-950/35 px-3 py-2.5 text-left text-sm leading-5 text-slate-300 transition hover:border-cyan-200/40 hover:bg-cyan-200/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-200/40"
                   key={prompt}
                   onClick={() => setInput(prompt)}
-                  className="w-full rounded-xl border border-white/5 bg-white/[0.03] px-4 py-3 text-left text-xs text-slate-400 transition-all hover:border-emerald-400/30 hover:bg-emerald-400/5 hover:text-white"
+                  type="button"
                 >
                   {prompt}
                 </button>
               ))}
             </div>
           </div>
-        </div>
+        </aside>
 
-        {/* BOTTOM TECH INFO: RELEGATED TO SECONDARY VIEW */}
-        <div className="pt-6 border-t border-white/5 text-[11px] text-slate-500 font-mono leading-relaxed">
-          <div className="flex items-center gap-2 mb-2">
-            <ShieldCheck className="h-3.5 w-3.5 text-emerald-400/50" />
-            <span>SECURE DJANGO PROXY</span>
-          </div>
-          <p>Handshake active via /api/trigger-agent/</p>
-        </div>
-      </aside>
-
-      {/* 2. MAIN CHAT AREA: THE HERO COMPONENT */}
-      <section className="flex flex-1 flex-col rounded-2xl border border-white/10 bg-slate-950/20 shadow-2xl backdrop-blur-md overflow-hidden">
-        
-        {/* CHAT HEADER */}
-        <header className="flex h-16 items-center justify-between border-b border-white/5 px-6 bg-white/[0.01]">
-          <div className="flex items-center gap-2">
-            <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-xs font-mono uppercase tracking-widest text-slate-400 font-bold">Encrypted Session</span>
-          </div>
-          <button className="text-slate-500 hover:text-white transition-colors">
-            <TerminalSquare className="h-4 w-4" />
-          </button>
-        </header>
-
-        {/* MESSAGES AREA */}
-        <div className="flex-1 overflow-y-auto px-6 py-8 space-y-6">
-          {transcript.length === 0 ? (
-            <div className="flex h-full flex-col items-center justify-center text-center opacity-40">
-              <Sparkles className="h-12 w-12 text-emerald-400 mb-4" />
-              <h3 className="text-xl font-medium text-white">Initialize Mojo AI</h3>
-              <p className="max-w-xs text-sm text-slate-400 mt-2">Send an operational command to trigger your n8n workflow cluster.</p>
+        <section className="flex min-h-[640px] flex-col rounded-[8px] border border-white/10 bg-[#111823]/90 shadow-2xl shadow-black/35">
+          <header className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 px-5 py-4 sm:px-6">
+            <div>
+              <p className="font-mono text-xs uppercase tracking-[0.24em] text-cyan-200/80">
+                Live agent channel
+              </p>
+              <h2 className="mt-1 text-xl font-semibold text-white">
+                Submit instructions to n8n
+              </h2>
             </div>
-          ) : (
-            transcript.map((item) => (
-              <div key={item.id} className={`flex ${item.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`relative max-w-[80%] rounded-2xl p-4 transition-all ${
-                  item.role === 'user' 
-                    ? 'bg-emerald-500 text-slate-950 font-medium shadow-[0_10px_30px_rgba(16,185,129,0.15)]' 
-                    : item.status === 'error'
-                      ? 'bg-rose-500/10 border border-rose-500/20 text-rose-200'
-                      : 'bg-white/[0.04] border border-white/10 text-slate-100 backdrop-blur-sm'
-                }`}>
-                  <p className="font-mono text-[9px] uppercase tracking-[0.2em] mb-2 opacity-60">
-                    {item.role === 'user' ? 'Operator' : 'Mojo Agent'}
+            <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.035] px-3 py-2 text-sm text-slate-300">
+              <CheckCircle2 className="h-4 w-4 text-emerald-200" />
+              JSON relay enabled
+            </div>
+          </header>
+
+          <div className="flex-1 overflow-y-auto px-5 py-6 sm:px-6">
+            {transcript.length === 0 ? (
+              <div className="grid h-full place-items-center py-16 text-center">
+                <div className="max-w-md">
+                  <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-[8px] border border-cyan-200/25 bg-cyan-200/10 text-cyan-100">
+                    <Sparkles className="h-6 w-6" aria-hidden="true" />
+                  </div>
+                  <h3 className="text-2xl font-semibold text-white">
+                    Awaiting first instruction
+                  </h3>
+                  <p className="mt-3 text-sm leading-6 text-slate-400">
+                    Send an operational request and the Django backend will
+                    forward it to the configured n8n webhook.
                   </p>
-                  <pre className="whitespace-pre-wrap break-words font-sans text-[14px] leading-relaxed">
-                    {item.content}
-                  </pre>
                 </div>
               </div>
-            ))
-          )}
-          {isSubmitting && (
-            <div className="flex items-center gap-3 text-xs text-emerald-400/70 font-mono tracking-tight">
-              <Loader2 className="h-3 w-3 animate-spin" />
-              <span className="animate-pulse italic">AGENCY_THINKING_PROMPT...</span>
-            </div>
-          )}
-        </div>
+            ) : (
+              <div className="space-y-4">
+                {transcript.map((item) => (
+                  <article
+                    className={`flex gap-3 ${
+                      item.role === 'user' ? 'justify-end' : 'justify-start'
+                    }`}
+                    key={item.id}
+                  >
+                    {item.role === 'agent' && (
+                      <div className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] border border-emerald-300/25 bg-emerald-300/10 text-emerald-100">
+                        <Bot className="h-4 w-4" />
+                      </div>
+                    )}
+                    <div
+                      className={`max-w-[min(720px,86%)] rounded-[8px] border px-4 py-3 ${
+                        item.role === 'user'
+                          ? 'border-cyan-200/25 bg-cyan-200/12 text-cyan-50'
+                          : item.status === 'error'
+                            ? 'border-rose-300/25 bg-rose-300/10 text-rose-50'
+                            : 'border-white/10 bg-white/[0.045] text-slate-100'
+                      }`}
+                    >
+                      <p className="mb-1 font-mono text-[11px] uppercase tracking-[0.22em] text-slate-500">
+                        {item.role === 'user' ? 'Operator' : 'Agent'}
+                      </p>
+                      <pre className="whitespace-pre-wrap break-words font-sans text-sm leading-6">
+                        {item.content}
+                      </pre>
+                    </div>
+                    {item.role === 'user' && (
+                      <div className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] border border-cyan-200/25 bg-cyan-200/10 text-cyan-100">
+                        <UserRound className="h-4 w-4" />
+                      </div>
+                    )}
+                  </article>
+                ))}
 
-        {/* INPUT BAR: FLOATING OPAQUE STYLE */}
-        <div className="p-6 bg-gradient-to-t from-slate-950/60 to-transparent">
-          <form onSubmit={handleSubmit} className="relative mx-auto max-w-4xl">
-            {error && (
-              <div className="absolute bottom-full mb-4 w-full rounded-lg border border-rose-500/20 bg-rose-500/10 px-4 py-2 text-xs text-rose-200 backdrop-blur-md">
-                {error}
+                {isSubmitting && (
+                  <div className="flex items-center gap-3 text-sm text-slate-400">
+                    <Loader2 className="h-4 w-4 animate-spin text-emerald-200" />
+                    <span className="animate-pulse">Agent is writing a response...</span>
+                  </div>
+                )}
               </div>
             )}
-            <div className="group relative flex items-center rounded-2xl border border-white/10 bg-slate-900/80 p-1.5 transition-all focus-within:border-emerald-400/40 focus-within:ring-4 focus-within:ring-emerald-400/5">
+          </div>
+
+          <form
+            className="border-t border-white/10 bg-slate-950/45 p-4 sm:p-5"
+            onSubmit={handleSubmit}
+          >
+            {error && (
+              <p className="mb-3 rounded-[8px] border border-rose-300/25 bg-rose-300/10 px-3 py-2 text-sm text-rose-100">
+                {error}
+              </p>
+            )}
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <label className="sr-only" htmlFor="agent-message">
+                Agent instruction
+              </label>
               <input
+                className="min-h-12 flex-1 rounded-[8px] border border-white/10 bg-[#0d1117] px-4 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-200/45 focus:ring-2 focus:ring-cyan-200/20"
                 disabled={isSubmitting}
+                id="agent-message"
+                onChange={(event) => setInput(event.target.value)}
+                placeholder="Describe the workflow task to run..."
+                type="text"
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Submit instruction to n8n bridge..."
-                className="flex-1 bg-transparent px-4 py-3 text-sm text-white placeholder:text-slate-600 outline-none"
               />
               <button
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-[8px] border border-emerald-200/30 bg-emerald-200 px-5 text-sm font-semibold text-slate-950 transition hover:bg-emerald-100 focus:outline-none focus:ring-2 focus:ring-emerald-200/45 disabled:border-slate-700 disabled:bg-slate-800 disabled:text-slate-500"
                 disabled={!canSubmit}
-                className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-400 text-slate-950 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-30 disabled:grayscale"
+                type="submit"
               >
-                {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+                {isSubmitting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+                Submit
               </button>
             </div>
           </form>
-        </div>
+        </section>
       </section>
-    </section>
-  </main>
-)
-
+    </main>
+  )
 }
 
 export default App

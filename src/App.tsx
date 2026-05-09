@@ -198,7 +198,7 @@ function App() {
                   <p className="text-sm leading-6 text-slate-300">
                     The AI will then respond, the answer is sent and shown in the chat here, through the respond to webhook node 
                   </p>
-                 </div>
+                 {/* </div> */}
                    {/* <div className="flex items-start gap-3 rounded-[8px] border border-white/10 bg-white/[0.035] p-4"></div> */}
                     
                 </div>

@@ -27,9 +27,9 @@ type TranscriptItem = {
 }
 
 const quickPrompts = [
-  'Summarize today\'s queued automation runs.',
-  'Trigger the lead enrichment workflow for pending CRM records.',
-  'Check failed invoice sync jobs and suggest the next action.',
+  'Help me draft a follow-up email to my last client.',
+  'Summarize my agenda and tasks for today.',
+  'Analyze the latest CRM data and give me insights.',
 ]
 
 function formatResponse(payload: AgentResponse) {
@@ -180,13 +180,13 @@ function App() {
                 <div className="flex items-start gap-3 rounded-[8px] border border-white/10 bg-white/[0.035] p-4">
                   <TerminalSquare className="mt-0.5 h-4 w-4 text-emerald-200" />
                   <p className="text-sm leading-6 text-slate-300">
-                    Ask something from the AI, your input is sent via webhook to the webhook node on n8n
+                    Your request is securely sent from this chat interface directly to the automation engine (n8n) via a digital handshake called a webhook.
                   </p>
                 </div>
                 <div className="flex items-start gap-3 rounded-[8px] border border-white/10 bg-white/[0.035] p-4">
                   <ShieldCheck className="mt-0.5 h-4 w-4 text-cyan-200" />
                   <p className="text-sm leading-6 text-slate-300">
-                    The input will be then passed to the AI node
+                   The engine passes your specific instructions to the AI Intelligence core, where the data is analyzed and a tailored response is generated.
                     {/* <span className="font-mono text-slate-100">
                       {' '}
                       
@@ -197,7 +197,7 @@ function App() {
                   <div className="flex items-start gap-3 rounded-[8px] border border-white/10 bg-white/[0.035] p-4">
                   <TerminalSquare className="mt-0.5 h-4 w-4 text-emerald-200" />
                   <p className="text-sm leading-6 text-slate-300">
-                    The AI will then respond, the answer is sent and shown in the chat here, through the respond to webhook node 
+                    The finished answer is instantly routed back through the connection and displayed right here in your conversation window. 
                   </p>
                  </div>
               </div>
@@ -235,7 +235,7 @@ function App() {
             </div>
             <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.035] px-3 py-2 text-sm text-slate-300">
               <CheckCircle2 className="h-4 w-4 text-emerald-200" />
-              JSON relay enabled
+              Encrypted Chat
             </div>
           </header>
 
@@ -250,8 +250,7 @@ function App() {
                     Awaiting first instruction
                   </h3>
                   <p className="mt-3 text-sm leading-6 text-slate-400">
-                    Send an operational request and the Django backend will
-                    forward it to the configured n8n webhook.
+                    Ask me to analyze data, schedule a task, or answer questions about your current projects.
                   </p>
                 </div>
               </div>

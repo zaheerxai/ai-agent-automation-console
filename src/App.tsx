@@ -81,22 +81,22 @@ function App() {
     setTranscript((items) => [...items, userItem])
   
     
-    const WEBHOOK_URL = 'https://mojo-ai.app.n8n.cloud/webhook-test/ai-request'; 
+    const API_URL = '/api/trigger-agent/'; 
 
     try {
-      // 2. Change the fetch path to the absolute URL
-      const response = await fetch(WEBHOOK_URL, { 
+      const response = await fetch(API_URL, { 
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ "User message": message }),
-      })
+        body: JSON.stringify({ message }), 
+      });
 
       const text = await response.text()
-      let data: AgentResponse = {}
+      let data: any = {} // Changed from AgentResponse to 'any' temporarily for parsing
+      
       try {
-        data = JSON.parse(text) as AgentResponse
+        data = JSON.parse(text)
       } catch {
         data = { message: text.trim() || 'System busy' }
       }
@@ -105,12 +105,19 @@ function App() {
         throw new Error(data.message || data.error || 'System busy')
       }
 
+      // --- THE NEW TWEAK: Unpack Django's wrapper ---
+      // If Django returns {"status": "ok", "response": {...}}, extract the inner response
+      const finalData: AgentResponse = (data.status === 'ok' && data.response) 
+        ? data.response 
+        : data;
+      // ----------------------------------------------
+
       setTranscript((items) => [
         ...items,
         {
           id: crypto.randomUUID(),
           role: 'agent',
-          content: formatResponse(data),
+          content: formatResponse(finalData), // Pass the unwrapped data here
           status: 'ok',
         },
       ])

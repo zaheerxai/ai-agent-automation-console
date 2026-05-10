@@ -1,4 +1,4 @@
-import { FormEvent, useMemo, useState } from 'react'
+import { FormEvent, useMemo, useState, useRef, useEffect } from 'react'
 import {
   Bot,
   CheckCircle2,
@@ -60,6 +60,14 @@ function App() {
 
     return 'Ready'
   }, [isSubmitting, transcript])
+  
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+    }
+  }, [transcript, isSubmitting])
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -139,11 +147,12 @@ function App() {
     }
   }
 
-  return (
+return (
     <main className="min-h-screen overflow-hidden px-5 py-6 sm:px-8 lg:px-10">
       <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(rgba(238,242,248,0.045)_1px,transparent_1px),linear-gradient(90deg,rgba(238,242,248,0.045)_1px,transparent_1px)] bg-[size:44px_44px] [mask-image:linear-gradient(to_bottom,black,transparent_82%)]" />
 
-      <section className="relative mx-auto grid min-h-[calc(100vh-3rem)] max-w-7xl gap-6 lg:grid-cols-[0.9fr_1.5fr]">
+      {/* CHANGED: min-h to h-[] to lock the height and prevent stretching */}
+      <section className="relative mx-auto grid h-[calc(100vh-3rem)] max-w-7xl gap-6 lg:grid-cols-[0.9fr_1.5fr]">
         <aside className="flex flex-col justify-between rounded-[8px] border border-white/10 bg-white/[0.035] p-6 shadow-2xl shadow-black/30 backdrop-blur">
           <div>
             <div className="mb-10 flex items-center gap-3">
@@ -187,11 +196,6 @@ function App() {
                   <ShieldCheck className="mt-0.5 h-4 w-4 text-cyan-200" />
                   <p className="text-sm leading-6 text-slate-300">
                    The engine passes your specific instructions to the AI Intelligence core, where the data is analyzed and a tailored response is generated.
-                    {/* <span className="font-mono text-slate-100">
-                      {' '}
-                      
-                    </span>
-                    . */}
                   </p>                    
                 </div>
                   <div className="flex items-start gap-3 rounded-[8px] border border-white/10 bg-white/[0.035] p-4">
@@ -203,28 +207,12 @@ function App() {
               </div>
             </div>
           </div>
-
-          <div className="mt-10 border-t border-white/10 pt-5">
-            <p className="mb-3 font-mono text-xs uppercase tracking-[0.24em] text-slate-500">
-              Prompt presets
-            </p>
-            <div className="space-y-2">
-              {quickPrompts.map((prompt) => (
-                <button
-                  className="w-full rounded-[8px] border border-white/10 bg-slate-950/35 px-3 py-2.5 text-left text-sm leading-5 text-slate-300 transition hover:border-cyan-200/40 hover:bg-cyan-200/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-200/40"
-                  key={prompt}
-                  onClick={() => setInput(prompt)}
-                  type="button"
-                >
-                  {prompt}
-                </button>
-              ))}
-            </div>
-          </div>
+          {/* REMOVED the Prompt Presets section from here */}
         </aside>
 
-        <section className="flex min-h-[640px] flex-col rounded-[8px] border border-white/10 bg-[#111823]/90 shadow-2xl shadow-black/35">
-          <header className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 px-5 py-4 sm:px-6">
+        {/* CHANGED: h-full and overflow-hidden ensures it scrolls instead of stretching */}
+        <section className="flex h-full flex-col overflow-hidden rounded-[8px] border border-white/10 bg-[#111823]/90 shadow-2xl shadow-black/35">
+          <header className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 px-5 py-4 sm:px-6 shrink-0">
             <div>
               <p className="font-mono text-xs uppercase tracking-[0.24em] text-cyan-200/80">
                 Live agent channel
@@ -239,10 +227,11 @@ function App() {
             </div>
           </header>
 
-          <div className="flex-1 overflow-y-auto px-5 py-6 sm:px-6">
+          {/* CHANGED: Added scrollRef and scroll-smooth */}
+          <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-6 sm:px-6 scroll-smooth">
             {transcript.length === 0 ? (
-              <div className="grid h-full place-items-center py-16 text-center">
-                <div className="max-w-md">
+              <div className="flex h-full flex-col items-center justify-center text-center">
+                <div className="max-w-xl">
                   <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-[8px] border border-cyan-200/25 bg-cyan-200/10 text-cyan-100">
                     <Sparkles className="h-6 w-6" aria-hidden="true" />
                   </div>
@@ -252,6 +241,20 @@ function App() {
                   <p className="mt-3 text-sm leading-6 text-slate-400">
                     Ask me to analyze data, schedule a task, or answer questions about your current projects.
                   </p>
+
+                  {/* NEW: Floating Elegant Presets */}
+                  <div className="mt-8 flex flex-wrap items-center justify-center gap-2.5">
+                    {quickPrompts.map((prompt) => (
+                      <button
+                        className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-slate-300 backdrop-blur-md transition-all hover:border-cyan-200/40 hover:bg-cyan-200/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-200/40"
+                        key={prompt}
+                        onClick={() => setInput(prompt)}
+                        type="button"
+                      >
+                        {prompt}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             ) : (
@@ -303,7 +306,7 @@ function App() {
           </div>
 
           <form
-            className="border-t border-white/10 bg-slate-950/45 p-4 sm:p-5"
+            className="shrink-0 border-t border-white/10 bg-slate-950/45 p-4 sm:p-5"
             onSubmit={handleSubmit}
           >
             {error && (

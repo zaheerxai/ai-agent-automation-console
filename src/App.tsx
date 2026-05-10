@@ -289,40 +289,36 @@ return (
                         <ReactMarkdown
                           remarkPlugins={[remarkGfm]}
                           components={{
-                            p: ({ children }) => <p className="mb-3 last:mb-0">{children}</p>,
+                            p: ({ children }) => <p className="mb-3 last:mb-0 text-slate-300">{children}</p>,
+                            // Muted Emerald for strong text
                             strong: ({ children }) => (
-                              <strong className="font-semibold text-emerald-300">{children}</strong>
+                              <strong className="font-semibold text-emerald-400/90">{children}</strong>
                             ),
-                            ul: ({ children }) => <ul className="mb-3 space-y-2">{children}</ul>,
-                            ol: ({ children }) => <ol className="mb-3 list-decimal space-y-2 pl-4">{children}</ol>,
+                            // Muted subheadings to match the "Ready" status badge
+                            h1: ({ children }) => <h1 className="mb-3 mt-4 text-lg font-bold text-white">{children}</h1>,
+                            h2: ({ children }) => <h2 className="mb-2 mt-4 text-base font-bold text-slate-100">{children}</h2>,
+                            h3: ({ children }) => <h3 className="mb-2 mt-3 font-semibold text-cyan-100/80">{children}</h3>,
+                            // Fixed List Alignment: Added pl-1 and adjusted the dot size
+                            ul: ({ children }) => <ul className="mb-4 space-y-3 pl-1">{children}</ul>,
                             li: ({ children }) => (
-                              <li className="flex items-start gap-2">
-                                <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-cyan-400/60" />
-                                <span>{children}</span>
+                              <li className="flex items-start gap-2.5">
+                                <span className="mt-[10px] h-1 w-1 shrink-0 rounded-full bg-cyan-500/50" />
+                                <span className="text-slate-300">{children}</span>
                               </li>
                             ),
-                            h1: ({ children }) => <h1 className="mb-3 mt-4 text-lg font-bold text-white">{children}</h1>,
-                            h2: ({ children }) => <h2 className="mb-2 mt-4 text-base font-bold text-white">{children}</h2>,
-                            h3: ({ children }) => <h3 className="mb-2 mt-3 font-semibold text-emerald-100">{children}</h3>,
-                            hr: () => <hr className="my-4 border-white/10" />,
+                            // Standardized Code Blocks
                             code({ children, className, ...rest }) {
                               const match = /language-(\w+)/.exec(className || '')
                               return match ? (
-                                <code 
-                                  className="block w-full overflow-x-auto rounded-[6px] border border-white/5 bg-black/40 p-3 font-mono text-xs text-slate-300" 
-                                  {...rest}
-                                >
+                                <code className="my-3 block w-full overflow-x-auto rounded-[6px] border border-white/5 bg-black/40 p-3 font-mono text-xs text-slate-400" {...rest}>
                                   {children}
                                 </code>
                               ) : (
-                                <code 
-                                  className="rounded bg-black/30 px-1.5 py-0.5 font-mono text-xs text-cyan-200" 
-                                  {...rest}
-                                >
+                                <code className="rounded bg-white/5 px-1.5 py-0.5 font-mono text-xs text-cyan-200/70" {...rest}>
                                   {children}
                                 </code>
-                              );
-                            },
+                              )
+                            }
                           }}
                         >
                           {item.content}

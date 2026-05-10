@@ -8,7 +8,7 @@ import {
   RadioTower,
   Send,
   ShieldCheck,
-  Sparkles,
+  Sparkles, 
   TerminalSquare,
   UserRound,
   Workflow,

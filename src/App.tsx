@@ -1,6 +1,6 @@
-import { FormEvent, useMemo, useState, useRef, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { FormEvent, useMemo, useState, useRef, useEffect } from 'react'
 import {
   Bot,
   CheckCircle2,
@@ -36,7 +36,11 @@ const quickPrompts = [
 
 function formatResponse(payload: AgentResponse) {
   const value = payload.response ?? payload.message ?? payload.error ?? payload
-  if (typeof value === 'string') return value
+
+  if (typeof value === 'string') {
+    return value
+  }
+
   return JSON.stringify(value, null, 2)
 }
 
@@ -45,18 +49,22 @@ function App() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [transcript, setTranscript] = useState<TranscriptItem[]>([])
+
+  const canSubmit = input.trim().length > 0 && !isSubmitting
+  const latestStatus = useMemo(() => {
+    if (isSubmitting) {
+      return 'Dispatching'
+    }
+
+    if (transcript.some((item) => item.status === 'error')) {
+      return 'Attention'
+    }
+
+    return 'Ready'
+  }, [isSubmitting, transcript])
   
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  const canSubmit = input.trim().length > 0 && !isSubmitting
-  
-  const latestStatus = useMemo(() => {
-    if (isSubmitting) return 'Dispatching'
-    if (transcript.some((item) => item.status === 'error')) return 'Attention'
-    return 'Ready'
-  }, [isSubmitting, transcript])
-
-  // Auto-scroll logic
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
@@ -67,7 +75,9 @@ function App() {
     event.preventDefault()
 
     const message = input.trim()
-    if (!message) return
+    if (!message) {
+      return
+    }
 
     setError('')
     setInput('')
@@ -80,17 +90,20 @@ function App() {
     }
     setTranscript((items) => [...items, userItem])
   
-    const API_URL = '/api/trigger-agent/'
+    
+    const API_URL = '/api/trigger-agent/'; 
 
     try {
       const response = await fetch(API_URL, { 
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ message }), 
-      })
+      });
 
       const text = await response.text()
-      let data: any = {} 
+      let data: any = {} // Changed from AgentResponse to 'any' temporarily for parsing
       
       try {
         data = JSON.parse(text)
@@ -102,21 +115,25 @@ function App() {
         throw new Error(data.message || data.error || 'System busy')
       }
 
+      // --- THE NEW TWEAK: Unpack Django's wrapper ---
+      // If Django returns {"status": "ok", "response": {...}}, extract the inner response
       const finalData: AgentResponse = (data.status === 'ok' && data.response) 
         ? data.response 
-        : data
+        : data;
+      // ----------------------------------------------
 
       setTranscript((items) => [
         ...items,
         {
           id: crypto.randomUUID(),
           role: 'agent',
-          content: formatResponse(finalData),
+          content: formatResponse(finalData), // Pass the unwrapped data here
           status: 'ok',
         },
       ])
     } catch (requestError) {
-      const message = requestError instanceof Error ? requestError.message : 'System busy'
+      const message =
+        requestError instanceof Error ? requestError.message : 'System busy'
       setError(message)
       setTranscript((items) => [
         ...items,
@@ -132,14 +149,12 @@ function App() {
     }
   }
 
-  return (
-    <main className="min-h-screen overflow-hidden px-5 py-6 sm:px-8 lg:px-10 bg-[#070b14]">
+return (
+    <main className="min-h-screen overflow-hidden px-5 py-6 sm:px-8 lg:px-10">
       <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(rgba(238,242,248,0.045)_1px,transparent_1px),linear-gradient(90deg,rgba(238,242,248,0.045)_1px,transparent_1px)] bg-[size:44px_44px] [mask-image:linear-gradient(to_bottom,black,transparent_82%)]" />
 
-      {/* HEIGHT LOCKED CONTAINER */}
+      {/* CHANGED: min-h to h-[] to lock the height and prevent stretching */}
       <section className="relative mx-auto grid h-[calc(100vh-3rem)] max-w-7xl gap-6 lg:grid-cols-[0.9fr_1.5fr]">
-        
-        {/* SIDEBAR */}
         <aside className="flex flex-col justify-between rounded-[8px] border border-white/10 bg-white/[0.035] p-6 shadow-2xl shadow-black/30 backdrop-blur">
           <div>
             <div className="mb-10 flex items-center gap-3">
@@ -151,7 +166,7 @@ function App() {
                   Mojo AI
                 </p>
                 <h1 className="text-2xl font-semibold text-white">
-                  Agent Console
+                  Agent Automation Console
                 </h1>
               </div>
             </div>
@@ -164,7 +179,7 @@ function App() {
                 <div className="flex items-center justify-between rounded-[8px] border border-white/10 bg-slate-950/55 px-4 py-3">
                   <span className="flex items-center gap-2 text-sm text-slate-200">
                     <RadioTower className="h-4 w-4 text-cyan-200" />
-                    Intelligence Core
+                    N8N Workflow
                   </span>
                   <span className="rounded-full border border-emerald-300/25 bg-emerald-300/10 px-2.5 py-1 font-mono text-xs text-emerald-200">
                     {latestStatus}
@@ -185,7 +200,7 @@ function App() {
                    The engine passes your specific instructions to the AI Intelligence core, where the data is analyzed and a tailored response is generated.
                   </p>                    
                 </div>
-                <div className="flex items-start gap-3 rounded-[8px] border border-white/10 bg-white/[0.035] p-4">
+                  <div className="flex items-start gap-3 rounded-[8px] border border-white/10 bg-white/[0.035] p-4">
                   <TerminalSquare className="mt-0.5 h-4 w-4 text-emerald-200" />
                   <p className="text-sm leading-6 text-slate-300">
                     The finished answer is instantly routed back through the connection and displayed right here in your conversation window. 
@@ -194,9 +209,10 @@ function App() {
               </div>
             </div>
           </div>
+          {/* REMOVED the Prompt Presets section from here */}
         </aside>
 
-        {/* CHAT CONTAINER (Scrollable) */}
+        {/* CHANGED: h-full and overflow-hidden ensures it scrolls instead of stretching */}
         <section className="flex h-full flex-col overflow-hidden rounded-[8px] border border-white/10 bg-[#111823]/90 shadow-2xl shadow-black/35">
           <header className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 px-5 py-4 sm:px-6 shrink-0">
             <div>
@@ -213,6 +229,7 @@ function App() {
             </div>
           </header>
 
+          {/* CHANGED: Added scrollRef and scroll-smooth */}
           <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-6 sm:px-6 scroll-smooth">
             {transcript.length === 0 ? (
               <div className="flex h-full flex-col items-center justify-center text-center">
@@ -227,11 +244,11 @@ function App() {
                     Ask me to analyze data, schedule a task, or answer questions about your current projects.
                   </p>
 
-                  {/* FLOATING PRESETS */}
+                  {/* NEW: Floating Elegant Presets */}
                   <div className="mt-8 flex flex-wrap items-center justify-center gap-2.5">
                     {quickPrompts.map((prompt) => (
                       <button
-                        className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-slate-300 backdrop-blur-md transition-all hover:border-cyan-200/40 hover:bg-cyan-200/10 hover:text-white"
+                        className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-slate-300 backdrop-blur-md transition-all hover:border-cyan-200/40 hover:bg-cyan-200/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-200/40"
                         key={prompt}
                         onClick={() => setInput(prompt)}
                         type="button"
@@ -265,17 +282,17 @@ function App() {
                             : 'border-white/10 bg-white/[0.045] text-slate-100'
                       }`}
                     >
-                      <p className="mb-2 font-mono text-[11px] uppercase tracking-[0.22em] text-slate-500">
+                      <p className="mb-1 font-mono text-[11px] uppercase tracking-[0.22em] text-slate-500">
                         {item.role === 'user' ? 'Operator' : 'Agent'}
                       </p>
-                      
-                      {/* MARKDOWN RENDERER */}
                       <div className="break-words font-sans text-sm leading-6">
                         <ReactMarkdown
                           remarkPlugins={[remarkGfm]}
                           components={{
                             p: ({ children }) => <p className="mb-3 last:mb-0">{children}</p>,
-                            strong: ({ children }) => <strong className="font-semibold text-emerald-300">{children}</strong>,
+                            strong: ({ children }) => (
+                              <strong className="font-semibold text-emerald-300">{children}</strong>
+                            ),
                             ul: ({ children }) => <ul className="mb-3 space-y-2">{children}</ul>,
                             ol: ({ children }) => <ol className="mb-3 list-decimal space-y-2 pl-4">{children}</ol>,
                             li: ({ children }) => (
@@ -288,19 +305,24 @@ function App() {
                             h2: ({ children }) => <h2 className="mb-2 mt-4 text-base font-bold text-white">{children}</h2>,
                             h3: ({ children }) => <h3 className="mb-2 mt-3 font-semibold text-emerald-100">{children}</h3>,
                             hr: () => <hr className="my-4 border-white/10" />,
-                            code(props) {
-                              const {children, className, node, ...rest} = props
-                              const match = /language-(\w+)/.exec(className || '')
-                              return match ? (
-                                <code className="block w-full overflow-x-auto rounded-[6px] border border-white/5 bg-black/40 p-3 font-mono text-xs text-slate-300" {...rest}>
+                            code: ({ className, children, ...props }) => {
+                              const isBlock = /language-(\w+)/.exec(className || '');
+                              return isBlock ? (
+                                <code 
+                                  className="block w-full overflow-x-auto rounded-[6px] border border-white/5 bg-black/40 p-3 font-mono text-xs text-slate-300" 
+                                  {...props}
+                                >
                                   {children}
                                 </code>
                               ) : (
-                                <code className="rounded bg-black/30 px-1.5 py-0.5 font-mono text-xs text-cyan-200" {...rest}>
+                                <code 
+                                  className="rounded bg-black/30 px-1.5 py-0.5 font-mono text-xs text-cyan-200" 
+                                  {...props}
+                                >
                                   {children}
                                 </code>
-                              )
-                            }
+                              );
+                            },
                           }}
                         >
                           {item.content}

@@ -285,45 +285,57 @@ return (
                       <p className="mb-1 font-mono text-[11px] uppercase tracking-[0.22em] text-slate-500">
                         {item.role === 'user' ? 'Operator' : 'Agent'}
                       </p>
-                      <div className="break-words font-sans text-sm leading-6">
-                        <ReactMarkdown
-                          remarkPlugins={[remarkGfm]}
-                          components={{
-                            p: ({ children }) => <p className="mb-3 last:mb-0 text-slate-300">{children}</p>,
-                            // Muted Emerald for strong text
-                            strong: ({ children }) => (
-                              <strong className="font-semibold text-emerald-400/90">{children}</strong>
-                            ),
-                            // Muted subheadings to match the "Ready" status badge
-                            h1: ({ children }) => <h1 className="mb-3 mt-4 text-lg font-bold text-white">{children}</h1>,
-                            h2: ({ children }) => <h2 className="mb-2 mt-4 text-base font-bold text-slate-100">{children}</h2>,
-                            h3: ({ children }) => <h3 className="mb-2 mt-3 font-semibold text-cyan-100/80">{children}</h3>,
-                            // Fixed List Alignment: Added pl-1 and adjusted the dot size
-                            ul: ({ children }) => <ul className="mb-4 space-y-3 pl-1">{children}</ul>,
-                            li: ({ children }) => (
-                              <li className="flex items-start gap-2.5">
-                                <span className="mt-[10px] h-1 w-1 shrink-0 rounded-full bg-cyan-500/50" />
-                                <span className="text-slate-300">{children}</span>
-                              </li>
-                            ),
-                            // Standardized Code Blocks
-                            code({ children, className, ...rest }) {
-                              const match = /language-(\w+)/.exec(className || '')
-                              return match ? (
-                                <code className="my-3 block w-full overflow-x-auto rounded-[6px] border border-white/5 bg-black/40 p-3 font-mono text-xs text-slate-400" {...rest}>
-                                  {children}
-                                </code>
-                              ) : (
-                                <code className="rounded bg-white/5 px-1.5 py-0.5 font-mono text-xs text-cyan-200/70" {...rest}>
-                                  {children}
-                                </code>
-                              )
-                            }
-                          }}
-                        >
-                          {item.content}
-                        </ReactMarkdown>
-                      </div>
+<div className="break-words font-sans text-sm leading-6">
+  <ReactMarkdown
+    remarkPlugins={[remarkGfm]}
+    components={{
+      // Muted slate for body text to reduce eye strain
+      p: ({ children }) => <p className="mb-4 last:mb-0 text-slate-300/90">{children}</p>,
+      
+      // Changed from Emerald to a subtle Cyan-Green for bold highlights
+      strong: ({ children }) => (
+        <strong className="font-semibold text-cyan-100/90">{children}</strong>
+      ),
+
+      // Headers updated to clean White and muted Cyan
+      h1: ({ children }) => <h1 className="mb-4 mt-6 text-lg font-bold text-white tracking-tight">{children}</h1>,
+      h2: ({ children }) => <h2 className="mb-3 mt-5 text-base font-bold text-slate-100">{children}</h2>,
+      h3: ({ children }) => <h3 className="mb-2 mt-4 font-semibold text-cyan-200/70">{children}</h3>,
+      
+      // Horizontal Rule to match sidebar borders
+      hr: () => <hr className="my-6 border-white/10" />,
+
+      // FIXED LISTS: Improved nesting and vertical dot alignment
+      ul: ({ children }) => <ul className="mb-4 mt-2 space-y-3 pl-1">{children}</ul>,
+      ol: ({ children }) => <ol className="mb-4 mt-2 list-decimal space-y-3 pl-5 text-slate-300/90">{children}</ol>,
+      li: ({ children }) => (
+        <li className="flex items-start gap-3">
+          {/* Custom dot: Centered precisely with 'mt-[10px]' and lower opacity */}
+          <span className="mt-[10px] h-1.5 w-1.5 shrink-0 rounded-full bg-cyan-500/40" />
+          <span className="text-slate-300/90">{children}</span>
+        </li>
+      ),
+
+      // CODE BLOCKS: Slate tones to match your "Encrypted Chat" badge
+      code({ children, className, ...rest }) {
+        const match = /language-(\w+)/.exec(className || '')
+        return match ? (
+          <div className="my-4 rounded-[6px] border border-white/5 bg-[#090d16] p-4">
+            <code className="block overflow-x-auto font-mono text-xs text-slate-400" {...rest}>
+              {children}
+            </code>
+          </div>
+        ) : (
+          <code className="rounded bg-white/5 px-1.5 py-0.5 font-mono text-xs text-cyan-200/60" {...rest}>
+            {children}
+          </code>
+        )
+      }
+    }}
+  >
+    {item.content}
+  </ReactMarkdown>
+</div>
                     </div>
                     {item.role === 'user' && (
                       <div className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] border border-cyan-200/25 bg-cyan-200/10 text-cyan-100">

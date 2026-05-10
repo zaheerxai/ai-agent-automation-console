@@ -305,19 +305,19 @@ return (
                             h2: ({ children }) => <h2 className="mb-2 mt-4 text-base font-bold text-white">{children}</h2>,
                             h3: ({ children }) => <h3 className="mb-2 mt-3 font-semibold text-emerald-100">{children}</h3>,
                             hr: () => <hr className="my-4 border-white/10" />,
-                            code: ({ className, children, ...props }) => {
-                              const isBlock = /language-(\w+)/.exec(className || '');
-                              return isBlock ? (
+                            code({ children, className, ...rest }) {
+                              const match = /language-(\w+)/.exec(className || '')
+                              return match ? (
                                 <code 
                                   className="block w-full overflow-x-auto rounded-[6px] border border-white/5 bg-black/40 p-3 font-mono text-xs text-slate-300" 
-                                  {...props}
+                                  {...rest}
                                 >
                                   {children}
                                 </code>
                               ) : (
                                 <code 
                                   className="rounded bg-black/30 px-1.5 py-0.5 font-mono text-xs text-cyan-200" 
-                                  {...props}
+                                  {...rest}
                                 >
                                   {children}
                                 </code>

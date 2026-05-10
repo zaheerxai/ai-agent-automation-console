@@ -1,3 +1,5 @@
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { FormEvent, useMemo, useState, useRef, useEffect } from 'react'
 import {
   Bot,
@@ -283,9 +285,49 @@ return (
                       <p className="mb-1 font-mono text-[11px] uppercase tracking-[0.22em] text-slate-500">
                         {item.role === 'user' ? 'Operator' : 'Agent'}
                       </p>
-                      <pre className="whitespace-pre-wrap break-words font-sans text-sm leading-6">
-                        {item.content}
-                      </pre>
+                      <div className="break-words font-sans text-sm leading-6">
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
+                          components={{
+                            p: ({ children }) => <p className="mb-3 last:mb-0">{children}</p>,
+                            strong: ({ children }) => (
+                              <strong className="font-semibold text-emerald-300">{children}</strong>
+                            ),
+                            ul: ({ children }) => <ul className="mb-3 space-y-2">{children}</ul>,
+                            ol: ({ children }) => <ol className="mb-3 list-decimal space-y-2 pl-4">{children}</ol>,
+                            li: ({ children }) => (
+                              <li className="flex items-start gap-2">
+                                <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-cyan-400/60" />
+                                <span>{children}</span>
+                              </li>
+                            ),
+                            h1: ({ children }) => <h1 className="mb-3 mt-4 text-lg font-bold text-white">{children}</h1>,
+                            h2: ({ children }) => <h2 className="mb-2 mt-4 text-base font-bold text-white">{children}</h2>,
+                            h3: ({ children }) => <h3 className="mb-2 mt-3 font-semibold text-emerald-100">{children}</h3>,
+                            hr: () => <hr className="my-4 border-white/10" />,
+                            code: ({ className, children, ...props }) => {
+                              const isBlock = /language-(\w+)/.exec(className || '');
+                              return isBlock ? (
+                                <code 
+                                  className="block w-full overflow-x-auto rounded-[6px] border border-white/5 bg-black/40 p-3 font-mono text-xs text-slate-300" 
+                                  {...props}
+                                >
+                                  {children}
+                                </code>
+                              ) : (
+                                <code 
+                                  className="rounded bg-black/30 px-1.5 py-0.5 font-mono text-xs text-cyan-200" 
+                                  {...props}
+                                >
+                                  {children}
+                                </code>
+                              );
+                            },
+                          }}
+                        >
+                          {item.content}
+                        </ReactMarkdown>
+                      </div>
                     </div>
                     {item.role === 'user' && (
                       <div className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] border border-cyan-200/25 bg-cyan-200/10 text-cyan-100">

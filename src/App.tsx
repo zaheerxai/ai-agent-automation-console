@@ -2,6 +2,8 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { FormEvent, useMemo, useState, useRef, useEffect } from 'react'
 import {
+  Menu,
+  X,
   Bot,
   CheckCircle2,
   Loader2,
@@ -45,6 +47,7 @@ function formatResponse(payload: AgentResponse) {
 }
 
 function App() {
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [input, setInput] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -155,7 +158,26 @@ return (
 
       {/* CHANGED: min-h to h-[] to lock the height and prevent stretching */}
       <section className="relative mx-auto grid h-[calc(100vh-3rem)] max-w-7xl gap-6 lg:grid-cols-[0.9fr_1.5fr]">
-        <aside className="flex flex-col justify-between rounded-[8px] border border-white/10 bg-white/[0.035] p-6 shadow-2xl shadow-black/30 backdrop-blur">
+        {/* Backdrop — mobile only, closes sidebar on tap */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-20 bg-black/50 backdrop-blur-sm lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+      {/* Sidebar — drawer on mobile, static column on desktop */}
+      <aside
+        className={`
+          fixed inset-y-0 left-0 z-30 w-72 flex flex-col justify-between
+          rounded-r-[8px] border-r border-white/10 bg-[#0b1120]
+          p-6 shadow-2xl shadow-black/40 backdrop-blur
+          transition-transform duration-300 ease-in-out
+          overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10 hover:scrollbar-thumb-white/20
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+          lg:static lg:inset-auto lg:z-auto lg:w-auto lg:translate-x-0
+          lg:rounded-[8px] lg:border lg:shadow-2xl lg:shadow-black/30
+        `}
+      >
           <div>
             <div className="mb-10 flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-[8px] border border-emerald-300/30 bg-emerald-300/10 text-emerald-200">
@@ -210,11 +232,28 @@ return (
             </div>
           </div>
           {/* REMOVED the Prompt Presets section from here */}
+        {/* X close button — mobile only */}
+          <button
+            className="absolute top-4 right-4 lg:hidden text-slate-400 hover:text-white"
+            onClick={() => setSidebarOpen(false)}
+            aria-label="Close sidebar"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </aside>
 
         {/* CHANGED: h-full and overflow-hidden ensures it scrolls instead of stretching */}
         <section className="flex h-full flex-col overflow-hidden rounded-[8px] border border-white/10 bg-[#111823]/90 shadow-2xl shadow-black/35">
           <header className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 px-5 py-4 sm:px-6 shrink-0">
+  
+            {/* Hamburger — only visible on mobile */}
+            <button
+              className="flex lg:hidden items-center justify-center h-9 w-9 rounded-[8px] border border-white/10 bg-white/[0.035] text-slate-300 hover:text-white"
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Open sidebar"
+            >
+              <Menu className="h-4 w-4" />
+            </button>
             <div>
               <p className="font-mono text-xs uppercase tracking-[0.24em] text-cyan-200/80">
                 Live agent channel

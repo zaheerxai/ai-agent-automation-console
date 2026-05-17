@@ -129,6 +129,45 @@ def clerk_webhook(request):
 
 
 @csrf_exempt
+def get_chat_history(request):
+    """Fetch chat history for a given session ID"""
+    if request.method != 'GET':
+        return JsonResponse({"message": "Method not allowed"}, status=405)
+
+    session_id = request.headers.get('X-Session-ID', 'anonymous_session')
+    
+    if not session_id:
+        return JsonResponse({"message": "Session ID is required"}, status=400)
+
+    results = turso_execute([{
+        "sql": (
+            "SELECT role, content FROM chat_history "
+            "WHERE session_id = ? "
+            "ORDER BY created_at ASC"
+        ),
+        "args": [session_id]
+    }])
+
+    if not results:
+        return JsonResponse({"history": []}, status=200)
+
+    try:
+        rows = results[0]["response"]["result"]["rows"]
+        history = []
+        for row in rows:
+            role_val = row[0]["value"]
+            content_val = row[1]["value"]
+            history.append({
+                "role": role_val,
+                "content": content_val
+            })
+        return JsonResponse({"history": history}, status=200)
+    except (KeyError, IndexError, TypeError) as e:
+        print(f"Turso parse history error: {e}")
+        return JsonResponse({"history": []}, status=200)
+
+
+@csrf_exempt
 @require_POST
 def trigger_agent(request):
     # 1. Parse

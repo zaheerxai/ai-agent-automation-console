@@ -73,6 +73,43 @@ function ConsoleView() {
   
   const scrollRef = useRef<HTMLDivElement>(null)
 
+  // Load chat history from Turso when component mounts
+  useEffect(() => {
+    if (!user?.id) return
+
+    const loadChatHistory = async () => {
+      try {
+        const response = await fetch('/api/chat-history/', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Session-ID': user.id,
+          },
+        })
+
+        if (!response.ok) {
+          console.log('Failed to load chat history')
+          return
+        }
+
+        const data = await response.json()
+        if (data.history && Array.isArray(data.history)) {
+          const loadedTranscript = data.history.map((item: any) => ({
+            id: crypto.randomUUID(),
+            role: item.role as 'user' | 'agent',
+            content: item.content,
+            status: 'ok' as const,
+          }))
+          setTranscript(loadedTranscript)
+        }
+      } catch (error) {
+        console.log('Error loading chat history:', error)
+      }
+    }
+
+    loadChatHistory()
+  }, [user?.id])
+
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight

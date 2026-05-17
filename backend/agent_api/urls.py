@@ -1,9 +1,11 @@
 from django.urls import path
-
-from .views import trigger_agent
+from . import views  # This is the cleanest way to import multiple views
 
 urlpatterns = [
-    path("trigger-agent/", trigger_agent, name="trigger-agent"),
-    path('trigger-agent/', views.trigger_agent),
-    path('webhooks/clerk/', views.clerk_webhook), # Point Clerk Dashboard here
+    # Only define the path once. 
+    # Using 'views.trigger_agent' matches your 'views' import above.
+    path("trigger-agent/", views.trigger_agent, name="trigger-agent"),
+    
+    # Clerk Webhook
+    path('webhooks/clerk/', views.clerk_webhook, name="clerk-webhook"),
 ]

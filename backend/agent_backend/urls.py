@@ -1,7 +1,7 @@
-from django.urls import include, path
-from . import views
+from django.contrib import admin
+from django.urls import path, include
 
 urlpatterns = [
-    path('trigger-agent/', views.trigger_agent),
-    path("api/", include("agent_api.urls")),
+    path('admin/', admin.site.urls),
+    path('api/', include('agent_api.urls')), # Points to the app
 ]

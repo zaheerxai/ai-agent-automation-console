@@ -1,6 +1,7 @@
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { FormEvent, useMemo, useState, useRef, useEffect } from 'react'
+import { SignedIn, SignedOut, SignIn, UserButton, useUser } from '@clerk/clerk-react'
 import {
   Menu,
   X,
@@ -46,12 +47,16 @@ function formatResponse(payload: AgentResponse) {
   return JSON.stringify(value, null, 2)
 }
 
-function App() {
+// 1. Renamed your original App to ConsoleView
+function ConsoleView() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [input, setInput] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [transcript, setTranscript] = useState<TranscriptItem[]>([])
+
+  // 2. Extract the current logged-in user from Clerk
+  const { user } = useUser()
 
   const canSubmit = input.trim().length > 0 && !isSubmitting
   const latestStatus = useMemo(() => {
@@ -93,7 +98,6 @@ function App() {
     }
     setTranscript((items) => [...items, userItem])
   
-    
     const API_URL = '/api/trigger-agent/'; 
 
     try {
@@ -102,11 +106,15 @@ function App() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ message }), 
+        // 3. Attach the user ID directly to the payload for n8n memory!
+        body: JSON.stringify({ 
+          message,
+          sessionId: user?.id || 'anonymous_session' 
+        }), 
       });
 
       const text = await response.text()
-      let data: any = {} // Changed from AgentResponse to 'any' temporarily for parsing
+      let data: any = {} 
       
       try {
         data = JSON.parse(text)
@@ -118,19 +126,16 @@ function App() {
         throw new Error(data.message || data.error || 'System busy')
       }
 
-      // --- THE NEW TWEAK: Unpack Django's wrapper ---
-      // If Django returns {"status": "ok", "response": {...}}, extract the inner response
       const finalData: AgentResponse = (data.status === 'ok' && data.response) 
         ? data.response 
         : data;
-      // ----------------------------------------------
 
       setTranscript((items) => [
         ...items,
         {
           id: crypto.randomUUID(),
           role: 'agent',
-          content: formatResponse(finalData), // Pass the unwrapped data here
+          content: formatResponse(finalData), 
           status: 'ok',
         },
       ])
@@ -156,16 +161,13 @@ return (
     <main className="min-h-screen overflow-hidden px-5 py-6 sm:px-8 lg:px-10">
       <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(rgba(238,242,248,0.045)_1px,transparent_1px),linear-gradient(90deg,rgba(238,242,248,0.045)_1px,transparent_1px)] bg-[size:44px_44px] [mask-image:linear-gradient(to_bottom,black,transparent_82%)]" />
 
-      {/* CHANGED: min-h to h-[] to lock the height and prevent stretching */}
       <section className="relative mx-auto grid h-[calc(100vh-3rem)] max-w-7xl gap-6 lg:grid-cols-[0.9fr_1.5fr]">
-        {/* Backdrop — mobile only, closes sidebar on tap */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 z-20 bg-black/50 backdrop-blur-sm lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
-      {/* Sidebar — drawer on mobile, static column on desktop */}
       <aside
         className={`
           fixed inset-y-0 left-0 z-30 w-72 flex flex-col justify-between
@@ -188,7 +190,7 @@ return (
                   Mojo AI
                 </p>
                 <h1 className="text-2xl font-semibold text-white">
-                  Agent Automation Console
+                  Agent Console
                 </h1>
               </div>
             </div>
@@ -231,8 +233,6 @@ return (
               </div>
             </div>
           </div>
-          {/* REMOVED the Prompt Presets section from here */}
-        {/* X close button — mobile only */}
           <button
             className="absolute top-4 right-4 lg:hidden text-slate-400 hover:text-white"
             onClick={() => setSidebarOpen(false)}
@@ -242,11 +242,9 @@ return (
           </button>
         </aside>
 
-        {/* CHANGED: h-full and overflow-hidden ensures it scrolls instead of stretching */}
         <section className="flex h-full flex-col overflow-hidden rounded-[8px] border border-white/10 bg-[#111823]/90 shadow-2xl shadow-black/35">
           <header className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 px-5 py-4 sm:px-6 shrink-0">
   
-            {/* Hamburger — only visible on mobile */}
             <button
               className="flex lg:hidden items-center justify-center h-9 w-9 rounded-[8px] border border-white/10 bg-white/[0.035] text-slate-300 hover:text-white"
               onClick={() => setSidebarOpen(true)}
@@ -262,13 +260,18 @@ return (
                 Submit instructions to n8n
               </h2>
             </div>
-            <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.035] px-3 py-2 text-sm text-slate-300">
-              <CheckCircle2 className="h-4 w-4 text-emerald-200" />
-              Encrypted Chat
+            <div className="flex items-center gap-4">
+              <div className="hidden sm:flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.035] px-3 py-2 text-sm text-slate-300">
+                <CheckCircle2 className="h-4 w-4 text-emerald-200" />
+                Encrypted Chat
+              </div>
+              {/* 4. This is Clerk's built-in profile picture and logout button */}
+              <div className="rounded-full border border-white/10 p-0.5">
+                <UserButton afterSignOutUrl="/"/>
+              </div>
             </div>
           </header>
 
-          {/* CHANGED: Added scrollRef and scroll-smooth */}
           <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-6 sm:px-6 scroll-smooth">
             {transcript.length === 0 ? (
               <div className="flex h-full flex-col items-center justify-center text-center">
@@ -277,13 +280,12 @@ return (
                     <Sparkles className="h-6 w-6" aria-hidden="true" />
                   </div>
                   <h3 className="text-2xl font-semibold text-white">
-                    Awaiting first instruction
+                    Hello, {user?.firstName || 'there'}!
                   </h3>
                   <p className="mt-3 text-sm leading-6 text-slate-400">
                     Ask me to analyze data, schedule a task, or answer questions about your current projects.
                   </p>
 
-                  {/* NEW: Floating Elegant Presets */}
                   <div className="mt-8 flex flex-wrap items-center justify-center gap-2.5">
                     {quickPrompts.map((prompt) => (
                       <button
@@ -322,40 +324,28 @@ return (
                       }`}
                     >
                       <p className="mb-1 font-mono text-[11px] uppercase tracking-[0.22em] text-slate-500">
-                        {item.role === 'user' ? 'Operator' : 'Agent'}
+                        {item.role === 'user' ? (user?.firstName || 'Operator') : 'Agent'}
                       </p>
 <div className="break-words font-sans text-sm leading-6">
   <ReactMarkdown
     remarkPlugins={[remarkGfm]}
     components={{
-      // Muted slate for body text to reduce eye strain
       p: ({ children }) => <p className="mb-4 last:mb-0 text-slate-300/90">{children}</p>,
-      
-      // Changed from Emerald to a subtle Cyan-Green for bold highlights
       strong: ({ children }) => (
         <strong className="font-semibold text-cyan-100/90">{children}</strong>
       ),
-
-      // Headers updated to clean White and muted Cyan
       h1: ({ children }) => <h1 className="mb-4 mt-6 text-lg font-bold text-white tracking-tight">{children}</h1>,
       h2: ({ children }) => <h2 className="mb-3 mt-5 text-base font-bold text-slate-100">{children}</h2>,
       h3: ({ children }) => <h3 className="mb-2 mt-4 font-semibold text-cyan-200/70">{children}</h3>,
-      
-      // Horizontal Rule to match sidebar borders
       hr: () => <hr className="my-6 border-white/10" />,
-
-      // FIXED LISTS: Improved nesting and vertical dot alignment
       ul: ({ children }) => <ul className="mb-4 mt-2 space-y-3 pl-1">{children}</ul>,
       ol: ({ children }) => <ol className="mb-4 mt-2 list-decimal space-y-3 pl-5 text-slate-300/90">{children}</ol>,
       li: ({ children }) => (
         <li className="flex items-start gap-3">
-          {/* Custom dot: Centered precisely with 'mt-[10px]' and lower opacity */}
           <span className="mt-[10px] h-1.5 w-1.5 shrink-0 rounded-full bg-cyan-500/40" />
           <span className="text-slate-300/90">{children}</span>
         </li>
       ),
-
-      // CODE BLOCKS: Slate tones to match your "Encrypted Chat" badge
       code({ children, className, ...rest }) {
         const match = /language-(\w+)/.exec(className || '')
         return match ? (
@@ -377,8 +367,12 @@ return (
 </div>
                     </div>
                     {item.role === 'user' && (
-                      <div className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] border border-cyan-200/25 bg-cyan-200/10 text-cyan-100">
-                        <UserRound className="h-4 w-4" />
+                      <div className="mt-1 flex h-9 w-9 shrink-0 overflow-hidden items-center justify-center rounded-[8px] border border-cyan-200/25 bg-cyan-200/10 text-cyan-100">
+                        {user?.imageUrl ? (
+                          <img src={user.imageUrl} alt="Profile" className="h-full w-full object-cover" />
+                        ) : (
+                          <UserRound className="h-4 w-4" />
+                        )}
                       </div>
                     )}
                   </article>
@@ -436,4 +430,21 @@ return (
   )
 }
 
-export default App
+// 5. THE NEW MASTER COMPONENT
+// This uses Clerk's SignedOut and SignedIn to block access to the console!
+export default function App() {
+  return (
+    <>
+      <SignedOut>
+        <main className="flex min-h-screen items-center justify-center bg-[#0b1120] px-4">
+           {/* You can customize this UI in the Clerk Dashboard! */}
+           <SignIn routing="hash" /> 
+        </main>
+      </SignedOut>
+      
+      <SignedIn>
+        <ConsoleView />
+      </SignedIn>
+    </>
+  )
+}

@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@clerk/clerk-react": "^5.61.6",
+    "@libsql/client": "^0.17.3",
     "@tailwindcss/vite": "^4.0.6",
     "lucide-react": "^0.576.0",
     "react": "^19.2.0",

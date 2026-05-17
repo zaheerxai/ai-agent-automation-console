@@ -4,28 +4,32 @@ import requests
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
-
-# Import the synchronous Turso client
 from libsql_client import create_client_sync
+
+def get_db():
+    return create_client_sync(
+        url=os.environ.get("TURSO_DATABASE_URL"),
+        auth_token=os.environ.get("TURSO_AUTH_TOKEN")
+    )
+
+def ensure_table(db):
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS chat_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id TEXT NOT NULL,
+            role TEXT NOT NULL,
+            content TEXT NOT NULL,
+            created_at INTEGER DEFAULT (unixepoch())
+        )
+    """)
 
 @csrf_exempt
 @require_POST
 def clerk_webhook(request):
-    """
-    Handles incoming webhooks from Clerk (e.g., user.created, session.created).
-    """
     try:
         payload = json.loads(request.body)
         event_type = payload.get("type")
-        data = payload.get("data")
-
-        # Log the event for debugging in Vercel logs
         print(f"Clerk Webhook Received: {event_type}")
-
-        # Add your logic here (e.g., sync user to your Turso DB)
-        # if event_type == "user.created":
-        #     ...
-
         return HttpResponse("Webhook processed", status=200)
     except Exception as e:
         print(f"Clerk Webhook Error: {e}")
@@ -34,7 +38,7 @@ def clerk_webhook(request):
 @csrf_exempt
 @require_POST
 def trigger_agent(request):
-    # 1. Parse incoming request
+    # 1. Parse request
     try:
         body = json.loads(request.body.decode("utf-8"))
     except json.JSONDecodeError:
@@ -50,59 +54,64 @@ def trigger_agent(request):
     if not n8n_url:
         return JsonResponse({"message": "System configuration error"}, status=503)
 
-    # 2. Connect to Turso to fetch Chat History
+    # 2. Connect + ensure table exists
     db = None
     try:
-        # Use a timeout so one slow DB call doesn't kill your Vercel function
-        db = create_client_sync(
-            url=os.environ.get("TURSO_DATABASE_URL"),
-            auth_token=os.environ.get("TURSO_AUTH_TOKEN")
-        )
+        db = get_db()
+        ensure_table(db)
     except Exception as e:
         print(f"Turso Connection Error: {e}")
 
+    # 3. Fetch chat history
     chat_history_str = ""
     if db:
         try:
             result = db.execute(
-                "SELECT role, content FROM chat_history WHERE session_id = ? ORDER BY created_at DESC LIMIT 6",
+                "SELECT role, content FROM chat_history "
+                "WHERE session_id = ? ORDER BY created_at ASC",
                 [session_id]
             )
-            history_rows = result.rows[::-1] 
-            for row in history_rows:
+            # Take last 6 turns for context window
+            rows = list(result.rows)[-6:]
+            for row in rows:
                 speaker = "Operator" if row[0] == "user" else "Mojo"
                 chat_history_str += f"{speaker}: {row[1]}\n"
         except Exception as e:
             print(f"Turso Fetch Error: {e}")
 
-    # 3. Forward to n8n
+    # 4. Forward to n8n
     try:
         n8n_payload = {
             "User message": user_message,
             "sessionId": session_id,
-            "chat_history": chat_history_str 
+            "chat_history": chat_history_str
         }
         n8n_response = requests.post(n8n_url, json=n8n_payload, timeout=10)
     except requests.RequestException:
-        if db: db.close() # Clean up if we fail here
+        if db:
+            db.close()
         return JsonResponse({"message": "Agent timeout"}, status=503)
 
-    # 4. Parse n8n response
+    # 5. Parse n8n response
     text = n8n_response.text.strip()
     try:
         response_data = n8n_response.json()
-        agent_text = response_data.get("output", text) 
+        agent_text = response_data.get("output", text)
     except ValueError:
         response_data = {"message": text}
         agent_text = text
 
-    # 5. Save to Turso and Close
+    # 6. Save BOTH turns — FIX: two separate execute() calls, not execute_batch()
     if db:
         try:
-            db.execute_batch([
-                {"sql": "INSERT INTO chat_history (session_id, role, content) VALUES (?, 'user', ?)", "args": [session_id, user_message]},
-                {"sql": "INSERT INTO chat_history (session_id, role, content) VALUES (?, 'agent', ?)", "args": [session_id, agent_text]}
-            ])
+            db.execute(
+                "INSERT INTO chat_history (session_id, role, content) VALUES (?, ?, ?)",
+                [session_id, "user", user_message]
+            )
+            db.execute(
+                "INSERT INTO chat_history (session_id, role, content) VALUES (?, ?, ?)",
+                [session_id, "agent", agent_text]
+            )
         except Exception as e:
             print(f"Turso Insert Error: {e}")
         finally:

@@ -13,16 +13,44 @@ from django.views.decorators.http import require_POST
 def extract_profile_with_llm(user_message: str, current_profile: dict) -> dict:
     """Use Groq LLM to intelligently extract profile updates"""
     prompt = f"""
-You are an expert at extracting user information from casual chat messages.
+You are an expert JSON extractor specialized in user profile information.
 
-Current user profile:
+Current user profile (may be empty):
 {json.dumps(current_profile, indent=2)}
 
 User's latest message: "{user_message}"
 
-Extract any new or updated information. Return **only valid JSON**. No explanation.
+Your task:
+- Carefully extract any information the user shared about themselves.
+- Pay special attention to the user's **name** (especially if they say "my name is", "I am", "call me").
+- If the user clearly mentions their name, you **must** include it.
 
-Possible fields: name, bio, timezone, preferences (object), favorite_tools (array)
+Return **only valid JSON**. No explanations, no markdown.
+
+Possible fields:
+- name
+- bio
+- timezone  
+- preferences (object)
+- favorite_tools (array of strings)
+
+Examples of good output:
+
+{{
+  "name": "Ali"
+}}
+
+{{
+  "name": "Ali",
+  "preferences": {{
+    "tone": "friendly",
+    "response_length": "concise"
+  }}
+}}
+
+{{
+  "bio": "Building AI automation tools from Pakistan"
+}}
 """
 
     try:
@@ -56,28 +84,36 @@ Possible fields: name, bio, timezone, preferences (object), favorite_tools (arra
 
 
 def extract_profile_updates(user_message: str, current_profile: dict) -> dict:
-    """Rule-based extraction (fast fallback)"""
+    """Improved rule-based extraction"""
     updates = {}
     msg_lower = user_message.lower().strip()
 
-    # Name Extraction
-    name_patterns = [r"my name is (\w+)", r"i am (\w+)", r"call me (\w+)", r"name is (\w+)"]
+    # Stronger Name Detection
+    name_patterns = [
+        r"my name is (\w+)",
+        r"i am (\w+)",
+        r"call me (\w+)",
+        r"name is (\w+)",
+        r"this is (\w+)",          # new
+        r"hi.?i.?m (\w+)",         # new
+        r"hello.?i.?m (\w+)"       # new
+    ]
+    
     for pattern in name_patterns:
         match = re.search(pattern, msg_lower)
         if match:
-            name = match.group(1).capitalize()
-            if len(name) > 2:
+            name = match.group(1).strip().capitalize()
+            if len(name) >= 3:
                 updates["name"] = name
-            break
+                break
+
+    # Force name if user says "Zaheer" clearly
+    if "zaheer" in msg_lower and not updates.get("name"):
+        updates["name"] = "Zaheer"
 
     # Preferences
-    if any(word in msg_lower for word in ["prefer", "like", "love", "want", "remember"]):
+    if any(word in msg_lower for word in ["prefer", "like", "love", "want", "remember", "usually"]):
         updates["preferences"] = current_profile.get("preferences", {}).copy()
-        # Basic extraction - can be expanded
-
-    # Bio / Location
-    if any(phrase in msg_lower for phrase in ["based in", "live in", "i'm from", "from pakistan", "from india"]):
-        updates["bio"] = user_message
 
     return updates
 

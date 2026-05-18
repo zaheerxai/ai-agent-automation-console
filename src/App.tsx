@@ -138,6 +138,7 @@ function ConsoleView() {
 
     const loadChatHistory = async () => {
       try {
+        console.log("[v0] Loading chat history for user:", user.id)
         const response = await fetch('/api/chat-history/', {
           method: 'GET',
           headers: {
@@ -146,12 +147,16 @@ function ConsoleView() {
           },
         })
 
+        console.log("[v0] Chat history response status:", response.status)
+        
         if (!response.ok) {
-          console.log('Failed to load chat history')
+          console.log('[v0] Failed to load chat history, status:', response.status)
           return
         }
 
         const data = await response.json()
+        console.log("[v0] Chat history data received:", data)
+        
         if (data.history && Array.isArray(data.history)) {
           const loadedTranscript = data.history.map((item: any) => ({
             id: crypto.randomUUID(),
@@ -159,10 +164,11 @@ function ConsoleView() {
             content: item.content,
             status: 'ok' as const,
           }))
+          console.log("[v0] Setting transcript with", loadedTranscript.length, "messages")
           setTranscript(loadedTranscript)
         }
       } catch (error) {
-        console.log('Error loading chat history:', error)
+        console.log('[v0] Error loading chat history:', error)
       }
     }
 

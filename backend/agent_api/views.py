@@ -155,27 +155,43 @@ def ensure_profile_table():
 def get_user_profile(user_id: str) -> dict:
     ensure_profile_table()
     results = turso_execute([{
-        "sql": "SELECT name, preferences, bio, timezone, favorite_tools FROM user_profiles WHERE user_id = ?",
+        "sql": """
+            SELECT name, preferences, bio, timezone, favorite_tools 
+            FROM user_profiles 
+            WHERE user_id = ?
+        """,
         "args": [user_id]
     }])
     
-    if results and results[0]["response"]["result"]["rows"]:
+    if not results or not results[0]["response"]["result"]["rows"]:
+        return {"name": None, "preferences": {}, "bio": None, "timezone": None, "favorite_tools": []}
+
+    try:
         row = results[0]["response"]["result"]["rows"][0]
-        try:
-            prefs = json.loads(row[1]["value"]) if row[1] and row[1]["value"] else {}
-        except:
-            prefs = {}
+        
+        # Safe JSON parsing with fallbacks
+        def safe_json_loads(val, default):
+            if not val or val == "None" or val == "null":
+                return default
+            try:
+                return json.loads(val)
+            except:
+                return default
+
         return {
-            "name": row[0]["value"] if row[0] else None,
-            "preferences": prefs,
-            "bio": row[2]["value"] if row[2] else None,
-            "timezone": row[3]["value"] if row[3] else None,
-            "favorite_tools": json.loads(row[4]["value"]) if row[4] and row[4]["value"] else []
+            "name": row[0]["value"] if row[0] and row[0]["value"] != "None" else None,
+            "preferences": safe_json_loads(row[1]["value"] if row[1] else None, {}),
+            "bio": row[2]["value"] if row[2] and row[2]["value"] != "None" else None,
+            "timezone": row[3]["value"] if row[3] and row[3]["value"] != "None" else None,
+            "favorite_tools": safe_json_loads(row[4]["value"] if row[4] else None, [])
         }
-    return {"name": None, "preferences": {}, "bio": None, "timezone": None, "favorite_tools": []}
+    except Exception as e:
+        print(f"❌ Error parsing user profile: {e}")
+        return {"name": None, "preferences": {}, "bio": None, "timezone": None, "favorite_tools": []}
 
 
-def save_user_profile(user_id: str, name=None, preferences=None, bio=None, timezone=None, favorite_tools=None):
+def save_user_profile(user_id: str, name=None, preferences=None, 
+                     bio=None, timezone=None, favorite_tools=None):
     ensure_profile_table()
     now = int(time.time())
     
@@ -186,15 +202,15 @@ def save_user_profile(user_id: str, name=None, preferences=None, bio=None, timez
         INSERT INTO user_profiles (user_id, name, preferences, bio, timezone, favorite_tools, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(user_id) DO UPDATE SET 
-            name = COALESCE(excluded.name, name),
-            preferences = COALESCE(excluded.preferences, preferences),
-            bio = COALESCE(excluded.bio, bio),
-            timezone = COALESCE(excluded.timezone, timezone),
-            favorite_tools = COALESCE(excluded.favorite_tools, favorite_tools),
-            updated_at = excluded.updated_at
+            name = COALESCE(excluded.name, user_profiles.name),
+            preferences = COALESCE(excluded.preferences, user_profiles.preferences),
+            bio = COALESCE(excluded.bio, user_profiles.bio),
+            timezone = COALESCE(excluded.timezone, user_profiles.timezone),
+            favorite_tools = COALESCE(excluded.favorite_tools, user_profiles.favorite_tools),
+            updated_at = ?
     """
-    
     args = [user_id, name, pref_json, bio, timezone, tools_json, now]
+    
     turso_execute([{"sql": sql, "args": args}])
 
 

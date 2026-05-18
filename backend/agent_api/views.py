@@ -60,11 +60,11 @@ Examples of good output:
         response = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[
-                {"role": "system", "content": "You are a precise JSON extractor. Always respond with valid JSON only."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.0,
-            max_tokens=400
+            {"role": "system", "content": "You are a precise JSON extractor. Always respond with valid JSON only. Never add extra text."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.0,
+        max_tokens=300
         )
         
         content = response.choices[0].message.content.strip()

@@ -6,6 +6,83 @@ from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
+
+def extract_profile_with_llm(user_message: str, current_profile: dict) -> dict:
+    """Use Groq LLM to intelligently extract profile updates from user message"""
+    
+    prompt = f"""
+You are an expert at extracting user information from casual chat messages.
+
+Current user profile:
+{json.dumps(current_profile, indent=2)}
+
+User's latest message: "{user_message}"
+
+Extract any new or updated information about the user. 
+Return **only valid JSON**. Do not add any explanation.
+
+Possible fields you can update:
+- name
+- bio
+- timezone
+- preferences (object)
+- favorite_tools (array of strings)
+
+Examples of good output:
+
+{{
+  "name": "Zaheer",
+  "preferences": {{
+    "response_style": "concise",
+    "tone": "professional but friendly"
+  }}
+}}
+
+{{
+  "bio": "Founder building AI automation tools, based in Pakistan"
+}}
+
+{{
+  "preferences": {{
+    "language": "English",
+    "max_response_length": "short"
+  }},
+  "favorite_tools": ["web search", "google sheets"]
+}}
+"""
+
+    try:
+        # Using Groq directly (fast and cheap)
+        from groq import Groq
+        client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+        
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",   # or whichever model you're using
+            messages=[
+                {"role": "system", "content": "You are a precise JSON extractor. Always respond with valid JSON only."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.0,
+            max_tokens=400
+        )
+        
+        content = response.choices[0].message.content.strip()
+        
+        # Clean possible markdown code blocks
+        if content.startswith("```json"):
+            content = content.split("```json")[1].split("```")[0]
+        elif content.startswith("```"):
+            content = content.split("```")[1].split("```")[0]
+            
+        updates = json.loads(content)
+        return updates if isinstance(updates, dict) else {}
+        
+    except Exception as e:
+        print(f"LLM Profile Extraction Error: {e}")
+        return {}
+
+
+
 def extract_profile_updates(user_message: str, current_profile: dict) -> dict:
     """
     Extract profile updates from user message using simple + robust rules.
@@ -364,17 +441,26 @@ def trigger_agent(request):
     ensure_table()
     
     # === NEW: Auto-update profile ===
+    
     current_profile = get_user_profile(session_id)
+    # First try rule-based (fast)
     updates = extract_profile_updates(user_message, current_profile)
+    
+    # If nothing found or for better quality, use LLM
+    if not updates or len(updates) == 0:
+        updates = extract_profile_with_llm(user_message, current_profile)
     
     if updates:
         save_user_profile(
             user_id=session_id,
             name=updates.get("name"),
+            bio=updates.get("bio"),
+            timezone=updates.get("timezone"),
             preferences=updates.get("preferences"),
-            bio=updates.get("bio")
+            favorite_tools=updates.get("favorite_tools")
         )
-        print(f"✅ Auto-updated profile for {session_id}: {updates}")
+        print(f"✅ LLM Auto-updated profile for {session_id}: {updates}")
+
 
     # Fetch updated profile + history
     chat_history_str = fetch_history(session_id)

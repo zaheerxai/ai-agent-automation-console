@@ -1,10 +1,58 @@
 import json
+import re
 import os
 import requests
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
+def extract_profile_updates(user_message: str, current_profile: dict) -> dict:
+    """
+    Extract profile updates from user message using simple + robust rules.
+    Returns dict with fields that should be updated.
+    """
+    updates = {}
+    msg_lower = user_message.lower().strip()
+
+    # === Name Extraction ===
+    name_patterns = [
+        r"my name is (\w+)",
+        r"i am (\w+)",
+        r"call me (\w+)",
+        r"name is (\w+)"
+    ]
+    for pattern in name_patterns:
+        match = re.search(pattern, msg_lower)
+        if match:
+            extracted_name = match.group(1).capitalize()
+            if len(extracted_name) > 2:  # avoid short words
+                updates["name"] = extracted_name
+            break
+
+    # === Preferences Extraction (key-value style) ===
+    pref_patterns = [
+        (r"i (like|love|prefer) (.+?)(?:\.|$)", "preferences"),
+        (r"remember that i (.+?)(?:\.|$)", "preferences"),
+        (r"i want (.+?)(?:\.|$)", "preferences"),
+    ]
+
+    for pattern, key in pref_patterns:
+        matches = re.findall(pattern, msg_lower)
+        if matches:
+            if "preferences" not in updates:
+                updates["preferences"] = current_profile.get("preferences", {}).copy()
+            
+            for match in matches:
+                value = match[1] if isinstance(match, tuple) else match
+                # Simple key generation
+                pref_key = value.split()[0] if value else "general"
+                updates["preferences"][pref_key] = value.strip()
+
+    # === Bio / Location ===
+    if any(word in msg_lower for word in ["based in", "live in", "from ", "i am from"]):
+        updates["bio"] = user_message  # You can refine this later
+
+    return updates
 
 # --- Turso HTTP API helper (replaces libsql_client entirely) ---
 
@@ -298,57 +346,49 @@ def get_chat_history(request):
 @csrf_exempt
 @require_POST
 def trigger_agent(request):
-    # 1. Parse
     try:
         body = json.loads(request.body.decode("utf-8"))
     except json.JSONDecodeError:
-        return JsonResponse({"message": "Invalid JSON payload"}, status=400)
+        return JsonResponse({"message": "Invalid JSON"}, status=400)
 
     user_message = str(body.get("message", "")).strip()
-    session_id = body.get("sessionId", "anonymous_session")
+    session_id = body.get("sessionId") or body.get("user_id") or "anonymous"
 
     if not user_message:
-        return JsonResponse({"message": "Message is required"}, status=400)
-
-    if not profile["name"] and ("my name is" in user_message.lower() or "i am" in user_message.lower()):
-        # You could use LLM to extract name, or simple string parsing
-        # For now, let the agent handle it and save later
-        pass
+        return JsonResponse({"message": "Message required"}, status=400)
 
     n8n_url = os.environ.get("N8N_WEBHOOK_URL")
     if not n8n_url:
-        return JsonResponse({"message": "System configuration error"}, status=503)
+        return JsonResponse({"message": "Config error"}, status=503)
 
-    # 2. Ensure table + fetch history (parallel-ish, sequential is fine here)
     ensure_table()
+    
+    # === NEW: Auto-update profile ===
+    current_profile = get_user_profile(session_id)
+    updates = extract_profile_updates(user_message, current_profile)
+    
+    if updates:
+        save_user_profile(
+            user_id=session_id,
+            name=updates.get("name"),
+            preferences=updates.get("preferences"),
+            bio=updates.get("bio")
+        )
+        print(f"✅ Auto-updated profile for {session_id}: {updates}")
+
+    # Fetch updated profile + history
     chat_history_str = fetch_history(session_id)
 
-# === NEW: Fetch user profile ===
-    profile = get_user_profile(session_id)
-    profile_info = ""
-    if profile["name"]:
-        profile_info = f"User's name is {profile['name']}. "
-
-    # Send richer context to n8n
     n8n_payload = {
         "User message": user_message,
         "sessionId": session_id,
         "chat_history": chat_history_str,
-        "user_profile": profile_info,          # ← New field
-        "full_profile": profile                # Optional: send more data
     }
 
     # 3. Forward to n8n
+
     try:
-        n8n_response = requests.post(
-            n8n_url,
-            json={
-                "User message": user_message,
-                "sessionId": session_id,
-                "chat_history": chat_history_str,
-            },
-            timeout=10,
-        )
+        n8n_response = requests.post(n8n_url, json=n8n_payload, timeout=60)
     except requests.RequestException:
         return JsonResponse({"message": "Agent timeout"}, status=503)
 

@@ -6,6 +6,8 @@ urlpatterns = [
     # Using 'views.trigger_agent' matches your 'views' import above.
     path("trigger-agent/", views.trigger_agent, name="trigger-agent"),
     path("chat-history/", views.get_chat_history, name="chat-history"),
+
+    path('update-profile/', views.update_profile, name='update_profile'),
     
     # Clerk Webhook
     path('webhooks/clerk/', views.clerk_webhook, name="clerk-webhook"),

@@ -31,6 +31,38 @@ type TranscriptItem = {
   status?: 'ok' | 'error'
 }
 
+// Add this function inside the file (recommended: after the existing types, around line 50)
+async function updateUserProfile(profileData: {
+  user_id: string;
+  name?: string;
+  bio?: string;
+  timezone?: string;
+  preferences?: Record<string, any>;
+  favorite_tools?: string[];
+}) {
+  try {
+    const response = await fetch('/api/update-profile/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(profileData),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.error || 'Failed to update profile');
+    }
+
+    console.log('✅ Profile updated:', result.profile);
+    return result;
+  } catch (error) {
+    console.error('❌ Failed to update profile:', error);
+    throw error;
+  }
+}
+
 const quickPrompts = [
   'Help me draft a follow-up email to my last client.',
   'Summarize my agenda and tasks for today.',
@@ -57,6 +89,17 @@ function ConsoleView() {
 
   // 2. Extract the current logged-in user from Clerk
   const { user } = useUser()
+
+  // Auto-save basic profile when user logs in
+  useEffect(() => {
+    if (user?.id && user?.fullName) {
+      updateUserProfile({
+        user_id: user.id,
+        name: user.fullName || user.firstName + " " + (user.lastName || ""),
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      });
+    }
+  }, [user?.id]);
 
   const canSubmit = input.trim().length > 0 && !isSubmitting
   const latestStatus = useMemo(() => {

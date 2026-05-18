@@ -297,50 +297,59 @@ def trigger_agent(request):
     if not user_message:
         return JsonResponse({"message": "Message required"}, status=400)
 
-    n8n_url = os.environ.get("N8N_WEBHOOK_URL")
-    if not n8n_url:
-        return JsonResponse({"message": "Config error"}, status=503)
-
-    ensure_table()
-
-    # Auto Profile Update
-    current_profile = get_user_profile(session_id)
-    updates = extract_profile_updates(user_message, current_profile)
-    
-    if not updates:
-        updates = extract_profile_with_llm(user_message, current_profile)
-
-    if updates:
-        save_user_profile(
-            user_id=session_id,
-            name=updates.get("name"),
-            bio=updates.get("bio"),
-            timezone=updates.get("timezone"),
-            preferences=updates.get("preferences"),
-            favorite_tools=updates.get("favorite_tools")
-        )
-        print(f"✅ Profile updated for {session_id}: {updates}")
-
-    chat_history_str = fetch_history(session_id)
-
-    n8n_payload = {
-        "User message": user_message,
-        "sessionId": session_id,
-        "chat_history": chat_history_str,
-    }
-
     try:
+        n8n_url = os.environ.get("N8N_WEBHOOK_URL")
+        if not n8n_url:
+            return JsonResponse({"message": "Config error"}, status=503)
+
+        ensure_table()
+
+        # Auto Profile Update
+        current_profile = get_user_profile(session_id)
+        updates = extract_profile_updates(user_message, current_profile)
+        
+        if not updates:
+            updates = extract_profile_with_llm(user_message, current_profile)
+
+        if updates:
+            save_user_profile(
+                user_id=session_id,
+                name=updates.get("name"),
+                bio=updates.get("bio"),
+                timezone=updates.get("timezone"),
+                preferences=updates.get("preferences"),
+                favorite_tools=updates.get("favorite_tools")
+            )
+            print(f"✅ Profile updated for {session_id}: {updates}")
+
+        chat_history_str = fetch_history(session_id)
+
+        n8n_payload = {
+            "User message": user_message,
+            "sessionId": session_id,
+            "chat_history": chat_history_str,
+        }
+
         n8n_response = requests.post(n8n_url, json=n8n_payload, timeout=60)
         n8n_response.raise_for_status()
-        response_data = n8n_response.json()
+        
+        try:
+            response_data = n8n_response.json()
+        except ValueError:
+            response_data = {"output": n8n_response.text}
+
         agent_text = response_data.get("output", n8n_response.text)
+
+        save_turns(session_id, user_message, agent_text)
+
+        return JsonResponse({"status": "ok", "response": response_data})
+
     except Exception as e:
-        print(f"n8n error: {e}")
-        agent_text = "Sorry, I'm having trouble responding right now."
-
-    save_turns(session_id, user_message, agent_text)
-
-    return JsonResponse({"status": "ok", "response": response_data})
+        print(f"❌ Trigger agent error: {str(e)}")
+        return JsonResponse({
+            "status": "error",
+            "message": "Something went wrong. Please try again."
+        }, status=500)
 
 
 # Clerk Webhook + get_chat_history (unchanged)

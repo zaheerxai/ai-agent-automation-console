@@ -366,36 +366,35 @@ def get_chat_history(request):
     if request.method != 'GET':
         return JsonResponse({"message": "Method not allowed"}, status=405)
 
-    session_id = request.headers.get('X-Session-ID', 'anonymous_session')
-    
-    if not session_id:
-        return JsonResponse({"message": "Session ID is required"}, status=400)
+    session_id = request.headers.get('X-Session-ID')
 
-    ensure_chat_table()
-    
+    if not session_id:
+        return JsonResponse({"history": []}, status=200)
+
+    ensure_table()   # ← Use this instead of ensure_chat_table()
+
     results = turso_execute([{
-        "sql": (
-            "SELECT role, content FROM chat_history "
-            "WHERE session_id = ? "
-            "ORDER BY created_at ASC"
-        ),
+        "sql": """
+            SELECT role, content 
+            FROM chat_history 
+            WHERE session_id = ? 
+            ORDER BY created_at ASC
+        """,
         "args": [session_id]
     }])
 
-    if not results:
+    if not results or not results[0]["response"]["result"]["rows"]:
         return JsonResponse({"history": []}, status=200)
 
     try:
         rows = results[0]["response"]["result"]["rows"]
         history = []
         for row in rows:
-            role_val = row[0]["value"]
-            content_val = row[1]["value"]
             history.append({
-                "role": role_val,
-                "content": content_val
+                "role": row[0]["value"],
+                "content": row[1]["value"]
             })
         return JsonResponse({"history": history}, status=200)
-    except (KeyError, IndexError, TypeError) as e:
-        print(f"[v0] Turso parse history error: {e}")
+    except Exception as e:
+        print(f"[v0] Get chat history error: {e}")
         return JsonResponse({"history": []}, status=200)

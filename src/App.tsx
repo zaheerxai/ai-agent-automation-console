@@ -69,14 +69,30 @@ const quickPrompts = [
   'Analyze the latest CRM data and give me insights.',
 ]
 
-function formatResponse(payload: AgentResponse) {
-  const value = payload.response ?? payload.message ?? payload.error ?? payload
-
-  if (typeof value === 'string') {
-    return value
+function formatResponse(payload: any): string {
+  // Handle the new backend structure
+  if (payload?.status === "ok" && payload?.response) {
+    const resp = payload.response;
+    
+    // n8n usually returns { output: "..." }
+    if (resp.output) {
+      return typeof resp.output === 'string' 
+        ? resp.output 
+        : JSON.stringify(resp.output, null, 2);
+    }
+    
+    // Fallbacks
+    if (resp.message) return resp.message;
+    if (typeof resp === 'string') return resp;
   }
 
-  return JSON.stringify(value, null, 2)
+  // Old formats
+  if (typeof payload === 'string') return payload;
+  if (payload?.message) return payload.message;
+  if (payload?.error) return payload.error;
+
+  // Last resort
+  return JSON.stringify(payload, null, 2);
 }
 
 // 1. Renamed your original App to ConsoleView
@@ -215,7 +231,7 @@ function ConsoleView() {
         {
           id: crypto.randomUUID(),
           role: 'agent',
-          content: formatResponse(finalData), 
+          content: formatResponse(data),   // Pass the full response
           status: 'ok',
         },
       ])

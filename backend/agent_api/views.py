@@ -142,10 +142,22 @@ def save_user_profile(user_id: str, name: str = None, preferences: dict = None,
 def fetch_history(session_id: str) -> str:
     # Fetch user profile
     profile = get_user_profile(session_id)
-    profile_info = ""
+    
+    profile_info = "User Profile:\n"
     if profile.get("name"):
-        profile_info = f"User Profile:\n- Name: {profile['name']}\n"
-        # You can extend this later with more fields (preferences, etc.)
+        profile_info += f"- Name: {profile['name']}\n"
+    if profile.get("bio"):
+        profile_info += f"- Bio: {profile['bio']}\n"
+    if profile.get("timezone"):
+        profile_info += f"- Timezone: {profile['timezone']}\n"
+    if profile.get("favorite_tools"):
+        profile_info += f"- Favorite Tools: {', '.join(profile['favorite_tools'])}\n"
+    
+    # Add preferences (key-value)
+    if profile.get("preferences"):
+        profile_info += "- Preferences:\n"
+        for k, v in profile["preferences"].items():
+            profile_info += f"  • {k}: {v}\n"
     
     # Fetch chat history
     results = turso_execute([{
@@ -157,25 +169,60 @@ def fetch_history(session_id: str) -> str:
         "args": [session_id]
     }])
 
-    if not results:
-        return profile_info  # Return at least the profile
+    if not results or not results[0]["response"]["result"]["rows"]:
+        return profile_info.strip()
 
     try:
         rows = results[0]["response"]["result"]["rows"]
-        history = profile_info  # ← Profile always at the top
+        history = profile_info + "\n--- Conversation History ---\n"
         
-        # last N rows (you can increase this)
-        for row in rows[-10:]:   # Increased from 6 → 10 (recommended)
+        for row in rows[-12:]:   # Increased to 12 (adjust based on your LLM context)
             role_val = row[0]["value"]
             content_val = row[1]["value"]
-            speaker = "Operator" if role_val == "user" else "Mojo"
+            speaker = "User" if role_val == "user" else "Mojo"
             history += f"{speaker}: {content_val}\n"
         
         return history.strip()
-    except (KeyError, IndexError, TypeError) as e:
+    except Exception as e:
         print(f"Turso parse history error: {e}")
-        return profile_info
+        return profile_info.strip()
 
+@csrf_exempt
+@require_POST
+def update_profile(request):
+    try:
+        body = json.loads(request.body.decode("utf-8"))
+        user_id = body.get("user_id") or body.get("sessionId")
+        
+        if not user_id:
+            return JsonResponse({"error": "user_id is required"}, status=400)
+
+        name = body.get("name")
+        bio = body.get("bio")
+        timezone = body.get("timezone")
+        preferences = body.get("preferences")   # dict
+        favorite_tools = body.get("favorite_tools")  # list
+
+        save_user_profile(
+            user_id=user_id,
+            name=name,
+            bio=bio,
+            timezone=timezone,
+            preferences=preferences,
+            favorite_tools=favorite_tools
+        )
+
+        # Return updated profile
+        updated_profile = get_user_profile(user_id)
+        
+        return JsonResponse({
+            "success": True,
+            "message": "Profile updated successfully",
+            "profile": updated_profile
+        })
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
 
 def save_turns(session_id: str, user_message: str, agent_text: str):
     results = turso_execute([

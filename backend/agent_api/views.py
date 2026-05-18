@@ -75,7 +75,10 @@ def ensure_profile_table():
             CREATE TABLE IF NOT EXISTS user_profiles (
                 user_id TEXT PRIMARY KEY,
                 name TEXT,
-                preferences TEXT DEFAULT '{}',
+                preferences TEXT DEFAULT '{}',   -- JSON string for flexibility
+                bio TEXT,
+                timezone TEXT,
+                favorite_tools TEXT DEFAULT '[]',
                 created_at INTEGER DEFAULT (unixepoch()),
                 updated_at INTEGER DEFAULT (unixepoch())
             )
@@ -83,36 +86,58 @@ def ensure_profile_table():
         "args": []
     }])
 
+
 def get_user_profile(user_id: str) -> dict:
     ensure_profile_table()
     results = turso_execute([{
-        "sql": "SELECT name, preferences FROM user_profiles WHERE user_id = ?",
+        "sql": """
+            SELECT name, preferences, bio, timezone, favorite_tools 
+            FROM user_profiles 
+            WHERE user_id = ?
+        """,
         "args": [user_id]
     }])
     
     if results and results[0]["response"]["result"]["rows"]:
         row = results[0]["response"]["result"]["rows"][0]
+        try:
+            prefs = json.loads(row[1]["value"]) if row[1] and row[1]["value"] else {}
+        except:
+            prefs = {}
+            
         return {
             "name": row[0]["value"] if row[0] else None,
-            "preferences": row[1]["value"] if row[1] else "{}"
+            "preferences": prefs,
+            "bio": row[2]["value"] if row[2] else None,
+            "timezone": row[3]["value"] if row[3] else None,
+            "favorite_tools": json.loads(row[4]["value"]) if row[4] and row[4]["value"] else []
         }
-    return {"name": None, "preferences": "{}"}
+    return {"name": None, "preferences": {}, "bio": None, "timezone": None, "favorite_tools": []}
 
-def save_user_profile(user_id: str, name: str = None, preferences: dict = None):
+
+def save_user_profile(user_id: str, name: str = None, preferences: dict = None, 
+                     bio: str = None, timezone: str = None, favorite_tools: list = None):
     ensure_profile_table()
     now = int(__import__('time').time())
     
-    if name:
-        turso_execute([{
-            "sql": """
-                INSERT INTO user_profiles (user_id, name, updated_at)
-                VALUES (?, ?, ?)
-                ON CONFLICT(user_id) DO UPDATE SET 
-                    name = COALESCE(excluded.name, user_profiles.name),
-                    updated_at = ?
-            """,
-            "args": [user_id, name, now, now]
-        }])
+    pref_json = json.dumps(preferences) if preferences is not None else None
+    tools_json = json.dumps(favorite_tools) if favorite_tools is not None else None
+
+    sql = """
+        INSERT INTO user_profiles (user_id, name, preferences, bio, timezone, favorite_tools, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(user_id) DO UPDATE SET 
+            name = COALESCE(excluded.name, user_profiles.name),
+            preferences = COALESCE(excluded.preferences, user_profiles.preferences),
+            bio = COALESCE(excluded.bio, user_profiles.bio),
+            timezone = COALESCE(excluded.timezone, user_profiles.timezone),
+            favorite_tools = COALESCE(excluded.favorite_tools, user_profiles.favorite_tools),
+            updated_at = ?
+    """
+    
+    args = [user_id, name, pref_json, bio, timezone, tools_json, now, now]
+    
+    turso_execute([{"sql": sql, "args": args}])
 
 def fetch_history(session_id: str) -> str:
     # Fetch user profile

@@ -392,8 +392,70 @@ def trigger_agent(request):
 @csrf_exempt
 @require_POST
 def clerk_webhook(request):
-    # ... your existing code
-    pass
+    """Handle Clerk user events (signup, update, delete)"""
+    try:
+        payload = json.loads(request.body)
+        event_type = payload.get("type")
+        data = payload.get("data", {})
+        
+        print(f"[v0] Clerk Webhook Received: {event_type}")
+        
+        if event_type == "user.created":
+            # New user signed up
+            user_id = data.get("id")
+            email = data.get("email_addresses", [{}])[0].get("email_address") if data.get("email_addresses") else None
+            first_name = data.get("first_name")
+            last_name = data.get("last_name")
+            
+            # Construct name from first/last name
+            name = None
+            if first_name and last_name:
+                name = f"{first_name} {last_name}"
+            elif first_name:
+                name = first_name
+            elif last_name:
+                name = last_name
+            
+            if user_id:
+                print(f"[v0] Creating user profile for {user_id} with name: {name}")
+                save_user_profile(user_id=user_id, name=name)
+                return JsonResponse({"message": "User profile created"}, status=200)
+        
+        elif event_type == "user.updated":
+            # User updated their profile
+            user_id = data.get("id")
+            first_name = data.get("first_name")
+            last_name = data.get("last_name")
+            
+            name = None
+            if first_name and last_name:
+                name = f"{first_name} {last_name}"
+            elif first_name:
+                name = first_name
+            elif last_name:
+                name = last_name
+            
+            if user_id and name:
+                print(f"[v0] Updating user profile for {user_id}")
+                save_user_profile(user_id=user_id, name=name)
+                return JsonResponse({"message": "User profile updated"}, status=200)
+        
+        elif event_type == "user.deleted":
+            # User deleted their account
+            user_id = data.get("id")
+            if user_id:
+                print(f"[v0] Deleting user profile for {user_id}")
+                ensure_profile_table()
+                turso_execute([{
+                    "sql": "DELETE FROM user_profiles WHERE user_id = ?",
+                    "args": [user_id]
+                }])
+                return JsonResponse({"message": "User profile deleted"}, status=200)
+        
+        return JsonResponse({"message": "Webhook processed"}, status=200)
+    except Exception as e:
+        print(f"[v0] Clerk Webhook Error: {e}")
+        return JsonResponse({"error": str(e)}, status=500)
 
 
 @csrf_exempt

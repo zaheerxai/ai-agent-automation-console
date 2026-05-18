@@ -67,8 +67,62 @@ def ensure_table():
         "args": []
     }])
 
+# Add these functions after ensure_table()
+
+def ensure_profile_table():
+    turso_execute([{
+        "sql": """
+            CREATE TABLE IF NOT EXISTS user_profiles (
+                user_id TEXT PRIMARY KEY,
+                name TEXT,
+                preferences TEXT DEFAULT '{}',
+                created_at INTEGER DEFAULT (unixepoch()),
+                updated_at INTEGER DEFAULT (unixepoch())
+            )
+        """,
+        "args": []
+    }])
+
+def get_user_profile(user_id: str) -> dict:
+    ensure_profile_table()
+    results = turso_execute([{
+        "sql": "SELECT name, preferences FROM user_profiles WHERE user_id = ?",
+        "args": [user_id]
+    }])
+    
+    if results and results[0]["response"]["result"]["rows"]:
+        row = results[0]["response"]["result"]["rows"][0]
+        return {
+            "name": row[0]["value"] if row[0] else None,
+            "preferences": row[1]["value"] if row[1] else "{}"
+        }
+    return {"name": None, "preferences": "{}"}
+
+def save_user_profile(user_id: str, name: str = None, preferences: dict = None):
+    ensure_profile_table()
+    now = int(__import__('time').time())
+    
+    if name:
+        turso_execute([{
+            "sql": """
+                INSERT INTO user_profiles (user_id, name, updated_at)
+                VALUES (?, ?, ?)
+                ON CONFLICT(user_id) DO UPDATE SET 
+                    name = COALESCE(excluded.name, user_profiles.name),
+                    updated_at = ?
+            """,
+            "args": [user_id, name, now, now]
+        }])
 
 def fetch_history(session_id: str) -> str:
+    # Fetch user profile
+    profile = get_user_profile(session_id)
+    profile_info = ""
+    if profile.get("name"):
+        profile_info = f"User Profile:\n- Name: {profile['name']}\n"
+        # You can extend this later with more fields (preferences, etc.)
+    
+    # Fetch chat history
     results = turso_execute([{
         "sql": (
             "SELECT role, content FROM chat_history "
@@ -79,21 +133,23 @@ def fetch_history(session_id: str) -> str:
     }])
 
     if not results:
-        return ""
+        return profile_info  # Return at least the profile
 
     try:
         rows = results[0]["response"]["result"]["rows"]
-        # last 6 rows for context window
-        history = ""
-        for row in rows[-6:]:
+        history = profile_info  # ← Profile always at the top
+        
+        # last N rows (you can increase this)
+        for row in rows[-10:]:   # Increased from 6 → 10 (recommended)
             role_val = row[0]["value"]
             content_val = row[1]["value"]
             speaker = "Operator" if role_val == "user" else "Mojo"
             history += f"{speaker}: {content_val}\n"
-        return history
+        
+        return history.strip()
     except (KeyError, IndexError, TypeError) as e:
         print(f"Turso parse history error: {e}")
-        return ""
+        return profile_info
 
 
 def save_turns(session_id: str, user_message: str, agent_text: str):
@@ -182,6 +238,11 @@ def trigger_agent(request):
     if not user_message:
         return JsonResponse({"message": "Message is required"}, status=400)
 
+    if not profile["name"] and ("my name is" in user_message.lower() or "i am" in user_message.lower()):
+        # You could use LLM to extract name, or simple string parsing
+        # For now, let the agent handle it and save later
+        pass
+
     n8n_url = os.environ.get("N8N_WEBHOOK_URL")
     if not n8n_url:
         return JsonResponse({"message": "System configuration error"}, status=503)
@@ -189,6 +250,21 @@ def trigger_agent(request):
     # 2. Ensure table + fetch history (parallel-ish, sequential is fine here)
     ensure_table()
     chat_history_str = fetch_history(session_id)
+
+# === NEW: Fetch user profile ===
+    profile = get_user_profile(session_id)
+    profile_info = ""
+    if profile["name"]:
+        profile_info = f"User's name is {profile['name']}. "
+
+    # Send richer context to n8n
+    n8n_payload = {
+        "User message": user_message,
+        "sessionId": session_id,
+        "chat_history": chat_history_str,
+        "user_profile": profile_info,          # ← New field
+        "full_profile": profile                # Optional: send more data
+    }
 
     # 3. Forward to n8n
     try:

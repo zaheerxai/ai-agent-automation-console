@@ -132,11 +132,17 @@ def turso_execute(statements: list[dict]) -> list | None:
     requests_payload = []
 
     for stmt in statements:
+        # FIX: None → {"type": "null"} instead of {"type": "text", "value": "None"}
+        def encode_arg(v):
+            if v is None:
+                return {"type": "null"}
+            return {"type": "text", "value": str(v)}
+
         requests_payload.append({
             "type": "execute",
             "stmt": {
                 "sql": stmt["sql"],
-                "args": [{"type": "text", "value": str(v)} for v in stmt.get("args", [])]
+                "args": [encode_arg(v) for v in stmt.get("args", [])]
             }
         })
     requests_payload.append({"type": "close"})
@@ -245,9 +251,14 @@ def save_user_profile(user_id: str, name=None, preferences=None,
             favorite_tools = COALESCE(excluded.favorite_tools, user_profiles.favorite_tools),
             updated_at = ?
     """
-    args = [user_id, name, pref_json, bio, timezone, tools_json, now]
+    # FIX: 8 placeholders need 8 args — now appears twice
+    args = [user_id, name, pref_json, bio, timezone, tools_json, now, now]
     
-    turso_execute([{"sql": sql, "args": args}])
+    result = turso_execute([{"sql": sql, "args": args}])
+    if result is None:
+        print(f"Turso: save_user_profile failed for {user_id}")
+    else:
+        print(f"Turso: profile saved for {user_id}")
 
 
 def fetch_history(session_id: str) -> str:

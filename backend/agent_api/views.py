@@ -388,7 +388,7 @@ def trigger_agent(request):
                 response_data = n8n_response.json()
             except ValueError as ve:
                 print(f"[v0] n8n JSON parse error: {ve}")
-                response_data = {"output": n8n_response.text or "No response"}
+                response_data = {"output": n8n_response.text or "We are currently experiencing a brief technical hiccup. Our engineers have been notified, please try again in a few minutes."}
 
         except requests.exceptions.Timeout:
             print(f"[v0] n8n request timeout (60s) for session {session_id}")

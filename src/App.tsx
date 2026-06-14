@@ -221,11 +221,17 @@ function ConsoleView() {
       try {
         data = JSON.parse(text)
       } catch {
-        data = { message: text.trim() || 'System busy' }
+        data = { message: text.trim() || 'We are currently experiencing a brief technical hiccup. Our engineers have been notified, please try again in a few minutes.' }
       }
 
-      if (!response.ok) {
-        throw new Error(data.message || data.error || 'System busy')
+      // Check if response indicates an error (either via status or error flag in response)
+      if (!response.ok || data.status === 'error') {
+        const errorMessage = data.message || 
+          (response.status === 504 ? 'The request took too long to complete. Please try again in a moment.' :
+           response.status === 503 ? 'Service temporarily unavailable. Please try again in a moment.' :
+           response.status === 502 ? 'Connection issue detected. Please try again in a moment.' :
+           'We are currently experiencing a brief technical hiccup. Our engineers have been notified, please try again in a few minutes.')
+        throw new Error(errorMessage)
       }
 
       const finalData: AgentResponse = (data.status === 'ok' && data.response) 
@@ -243,7 +249,7 @@ function ConsoleView() {
       ])
     } catch (requestError) {
       const message =
-        requestError instanceof Error ? requestError.message : 'System busy'
+        requestError instanceof Error ? requestError.message : 'We are currently experiencing a brief technical hiccup. Our engineers have been notified, please try again in a few minutes.'
       setError(message)
       setTranscript((items) => [
         ...items,

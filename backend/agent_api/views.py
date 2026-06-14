@@ -347,7 +347,10 @@ def trigger_agent(request):
     try:
         n8n_url = os.environ.get("N8N_WEBHOOK_URL")
         if not n8n_url:
-            return JsonResponse({"message": "Config error"}, status=503)
+            return JsonResponse({
+                "status": "error",
+                "message": "We are currently experiencing a brief technical hiccup. Our engineers have been notified, please try again in a few minutes."
+            }, status=503)
 
         ensure_table()
 
@@ -377,25 +380,57 @@ def trigger_agent(request):
             "chat_history": chat_history_str,
         }
 
-        n8n_response = requests.post(n8n_url, json=n8n_payload, timeout=60)
-        n8n_response.raise_for_status()
-        
         try:
-            response_data = n8n_response.json()
-        except ValueError:
-            response_data = {"output": n8n_response.text}
+            n8n_response = requests.post(n8n_url, json=n8n_payload, timeout=60)
+            n8n_response.raise_for_status()
+            
+            try:
+                response_data = n8n_response.json()
+            except ValueError as ve:
+                print(f"[v0] n8n JSON parse error: {ve}")
+                response_data = {"output": n8n_response.text or "No response"}
 
-        agent_text = response_data.get("output", n8n_response.text)
+        except requests.exceptions.Timeout:
+            print(f"[v0] n8n request timeout (60s) for session {session_id}")
+            return JsonResponse({
+                "status": "error",
+                "message": "We are currently experiencing a brief technical hiccup. Our engineers have been notified, please try again in a few minutes."
+            }, status=504)
+        
+        except requests.exceptions.ConnectionError as ce:
+            print(f"[v0] n8n connection error: {ce}")
+            return JsonResponse({
+                "status": "error",
+                "message": "We are currently experiencing a brief technical hiccup. Our engineers have been notified, please try again in a few minutes."
+            }, status=503)
+        
+        except requests.exceptions.HTTPError as he:
+            print(f"[v0] n8n HTTP error: {he.response.status_code} - {he.response.text}")
+            return JsonResponse({
+                "status": "error",
+                "message": "We are currently experiencing a brief technical hiccup. Our engineers have been notified, please try again in a few minutes."
+            }, status=502)
+
+        agent_text = response_data.get("output", n8n_response.text if 'n8n_response' in locals() else "")
+
+        # Ensure we have an actual response
+        if not agent_text or agent_text.strip() == "":
+            print(f"[v0] Empty response from n8n for session {session_id}")
+            return JsonResponse({
+                "status": "error",
+                "message": "We are currently experiencing a brief technical hiccup. Our engineers have been notified, please try again in a few minutes."
+            }, status=500)
 
         save_turns(session_id, user_message, agent_text)
 
         return JsonResponse({"status": "ok", "response": response_data})
 
     except Exception as e:
-        print(f"❌ Trigger agent error: {str(e)}")
+        error_type = type(e).__name__
+        print(f"[v0] Trigger agent error ({error_type}): {str(e)}")
         return JsonResponse({
             "status": "error",
-            "message": "Something went wrong. Please try again."
+            "message": "We are currently experiencing a brief technical hiccup. Our engineers have been notified, please try again in a few minutes."
         }, status=500)
 
 
